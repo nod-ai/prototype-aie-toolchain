@@ -21,6 +21,7 @@ manylinux-x86_64-image = "manylinux_2_28"
 [tool.cibuildwheel.linux]
 before-build = [
     "pip install -r requirements-dev.txt",
+    "yum install -y epel-release && yum install -y openssl openssl-devel"
 ]
 
 [tool.cibuildwheel.windows]

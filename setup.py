@@ -357,8 +357,7 @@ class CMakeBuild(build_ext):
                 "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded",
                 "-DCMAKE_C_FLAGS=/MT",
                 "-DCMAKE_CXX_FLAGS=/MT",
-                "-DLLVM_USE_CRT_MINSIZEREL=MT",
-                "-DLLVM_USE_CRT_RELEASE=MT",
+                "-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=True"
             ]
 
         if "CMAKE_ARGS" in os.environ:

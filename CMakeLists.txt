@@ -3,13 +3,13 @@ project(xaiepy)
 
 include(collect)
 
-#find_package(OpenSSL REQUIRED)
-#if(OPENSSL_FOUND)
-#  message(STATUS "OpenSSL found")
-#  message(STATUS "OpenSSL include directories:" ${OPENSSL_INCLUDE_DIR})
-#else()
-#  message(FATAL_ERROR "OpenSSL Not found.")
-#endif()
+find_package(OpenSSL REQUIRED)
+if(OPENSSL_FOUND)
+  message(STATUS "OpenSSL found")
+  message(STATUS "OpenSSL include directories:" ${OPENSSL_INCLUDE_DIR})
+else()
+  message(FATAL_ERROR "OpenSSL Not found.")
+endif()
 
 set(BOOTGEN_SRC_DIR ${PROJECT_SOURCE_DIR}/third_party/bootgen)
 # malloc.h is deprecated and should not be used
@@ -44,13 +44,13 @@ target_link_libraries(bootgen_objlib PUBLIC)
 add_library(bootgen_shared SHARED $<TARGET_OBJECTS:bootgen_objlib>)
 add_library(bootgen_static STATIC $<TARGET_OBJECTS:bootgen_objlib>)
 
-#add_executable(bootgen ${BOOTGEN_SRC_DIR}/main.cpp)
-#target_include_directories(
-#  bootgen PUBLIC ${BOOTGEN_SRC_DIR} ${OPENSSL_INCLUDE_DIR}
-#                 ${CMAKE_CURRENT_BINARY_DIR}/include)
-#target_compile_definitions(bootgen PRIVATE OPENSSL_USE_APPLINK)
-#target_link_libraries(bootgen PRIVATE bootgen_static OpenSSL::SSL
-#                                      OpenSSL::applink)
+add_executable(bootgen ${BOOTGEN_SRC_DIR}/main.cpp)
+target_include_directories(
+  bootgen PUBLIC ${BOOTGEN_SRC_DIR} ${OPENSSL_INCLUDE_DIR}
+                 ${CMAKE_CURRENT_BINARY_DIR}/include)
+target_compile_definitions(bootgen PRIVATE OPENSSL_USE_APPLINK)
+target_link_libraries(bootgen PRIVATE bootgen_static OpenSSL::SSL
+                                      OpenSSL::applink)
 
 add_library(cdo_driver STATIC ${BOOTGEN_SRC_DIR}/cdo-driver/cdo_driver.c)
 # because primarily this will be linked into libxaie.so... if not you get
