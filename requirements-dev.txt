@@ -1,0 +1,7 @@
+setuptools>=42
+wheel
+ninja
+cmake>=3.28
+ctypesgen
+cmake-format
+black

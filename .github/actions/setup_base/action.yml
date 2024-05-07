@@ -1,0 +1,58 @@
+name: "Setup base"
+
+inputs:
+  MATRIX_OS:
+    description: 'matrix.os'
+    required: true
+  MATRIX_ARCH:
+    description: 'matrix.arch'
+    required: true
+
+description: ''
+
+runs:
+  using: "composite"
+  steps:
+    - uses: ilammy/msvc-dev-cmd@v1.4.1
+      if: ${{ inputs.MATRIX_OS == 'windows-2019' }}
+
+    - name: Set up Visual Studio shell
+      if: ${{ inputs.MATRIX_OS == 'windows-2019' }}
+      uses: egor-tensin/vs-shell@v2
+      with:
+        arch: x64
+
+    - name: MS Build
+      if: ${{ inputs.MATRIX_OS == 'windows-2019' }}
+      uses: microsoft/setup-msbuild@v1.1
+
+#    - name: Free disk space
+#      if: contains(inputs.MATRIX_OS, 'ubuntu')
+#      uses: descriptinc/free-disk-space@main
+#      with:
+#        tool-cache: true
+#        android: true
+#        dotnet: true
+#        haskell: true
+#        large-packages: true
+#        swap-storage: false # This frees space on the wrong partition.
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install Ninja
+      uses: llvm/actions/install-ninja@6a57890d0e3f9f35dfc72e7e48bc5e1e527cdd6c # Jan 17
+
+    - name: Install cross-compilation toolchain
+      shell: bash
+      if: ${{ inputs.MATRIX_OS == 'ubuntu-20.04' && inputs.MATRIX_ARCH == 'aarch64' }}
+      run: |
+        
+        sudo apt-get update
+        sudo apt-get install -y binutils-aarch64-linux-gnu \
+          g++-aarch64-linux-gnu gcc-aarch64-linux-gnu
+
+    - name: pip install standard tools
+      shell: bash
+      run: pip install cibuildwheel wheel auditwheel

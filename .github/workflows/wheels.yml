@@ -1,0 +1,168 @@
+name: Wheels
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [assigned, opened, synchronize, reopened]
+  workflow_dispatch:
+
+jobs:
+
+  build:
+
+    continue-on-error: true
+
+    runs-on: ${{ matrix.OS }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - OS: ubuntu-20.04
+            ARCH: x86_64
+
+          - OS: windows-2019
+            ARCH: AMD64
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+
+      - name: Checkout actions
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - uses: ./.github/actions/setup_base
+        id: setup_base
+        with:
+          MATRIX_OS: ${{ matrix.OS }}
+          MATRIX_ARCH: ${{ matrix.ARCH }}
+
+      # build
+
+      - name: cibuildwheel python bindings
+        run: |
+          
+          cibuildwheel --output-dir wheelhouse
+
+      - name: test
+        run: |
+          
+          pushd wheelhouse
+          pip install xaiepy -f $PWD
+          python ../tests/test_xaie_ctypes.py
+          popd
+
+      # done
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          path: wheelhouse/*.whl
+          name: build_artifact_python_bindings
+
+  build-linux-aarch64:
+
+    continue-on-error: true
+
+    runs-on: ${{ matrix.OS }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - OS: ubuntu-20.04
+            ARCH: aarch64
+            PY_VERSION: "cp38"
+
+          - OS: ubuntu-20.04
+            ARCH: aarch64
+            PY_VERSION: "cp39"
+
+          - OS: ubuntu-20.04
+            ARCH: aarch64
+            PY_VERSION: "cp310"
+
+          - OS: ubuntu-20.04
+            ARCH: aarch64
+            PY_VERSION: "cp311"
+
+          - OS: ubuntu-20.04
+            ARCH: aarch64
+            PY_VERSION: "cp312"
+
+    steps:
+      - name: Checkout actions
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - uses: ./.github/actions/setup_base
+        id: setup_base
+        with:
+          MATRIX_OS: ${{ matrix.OS }}
+          MATRIX_ARCH: ${{ matrix.ARCH }}
+
+      - name: Set up QEMU
+        if: ${{ matrix.OS == 'ubuntu-20.04' && matrix.ARCH == 'aarch64' }}
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: ${{ matrix.ARCH }}
+
+      # build
+
+      - name: cibuildwheel python bindings aarch64
+        run: |
+          
+          cibuildwheel --output-dir wheelhouse
+
+      - name: test
+        run: |
+          
+          pushd wheelhouse
+          pip install xaiepy -f $PWD
+          python ../tests/test_xaie_ctypes.py
+          popd
+
+      # done
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          path: wheelhouse/*.whl
+          name: build_artifact_python_bindings
+
+  upload_bindings_wheels:
+
+    if: github.event_name != 'pull_request'
+
+    needs: [build, build-linux-aarch64]
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          # unpacks default artifact into dist/
+          # if `name: artifact` is omitted, the action will create extra parent dir
+          name: build_artifact_python_bindings
+          path: dist
+
+      - name: Release current commit
+        uses: ncipollo/release-action@v1.12.0
+        with:
+          artifacts: "dist/*.whl"
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          tag: "latest"
+          name: "latest"
+          removeArtifacts: false
+          allowUpdates: true
+          replacesArtifacts: true
+          makeLatest: true
