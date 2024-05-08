@@ -252,7 +252,7 @@ class _WrapperPrinter(WrapperPrinter):
 EXCLUDED_HEADERS = {"xaie_interrupt.h"}
 
 
-def generate(xaie_build_include_dir: Path, output: Path):
+def generate(xaie_build_include_dir: Path, output: Path, bootgen_include_dir: Path):
     headers = list(
         filter(
             lambda f: Path(f).name not in EXCLUDED_HEADERS,
@@ -266,7 +266,7 @@ def generate(xaie_build_include_dir: Path, output: Path):
         allow_gnu_c=False,
         builtin_symbols=False,
         compile_libdirs=[str(Path(__file__).parent)],
-        cpp="gcc -E",
+        cpp=f"gcc -E -I {bootgen_include_dir}",
         cpp_defines=[],
         cpp_undefines=[],
         debug_level=0,
@@ -334,10 +334,12 @@ class CMakeBuild(build_ext):
         CMAKE_MODULE_PATH = str(
             Path(__file__).parent / "third_party" / "aie-rt" / "fal" / "cmake"
         )
+        BOOTGEN_INCLUDE_PATH = str(Path(__file__).parent / "third_party" / "bootgen")
         if platform.system() == "Windows":
             PYTHON_EXECUTABLE = PYTHON_EXECUTABLE.replace("\\", "\\\\")
             # i have no clue - cmake parses these at different points...?
             CMAKE_MODULE_PATH = CMAKE_MODULE_PATH.replace("\\", "//")
+            BOOTGEN_INCLUDE_PATH = BOOTGEN_INCLUDE_PATH.replace("\\", "//")
 
         cmake_args = [
             f"-B{build_temp}",
@@ -349,6 +351,7 @@ class CMakeBuild(build_ext):
             f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={extdir / PACKAGE_NAME}",
             f"-DPython3_EXECUTABLE={PYTHON_EXECUTABLE}",
             f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
+            "-DCMAKE_C_VISIBILITY_PRESET=default",
         ]
         if platform.system() == "Windows":
             cmake_args += [
@@ -357,7 +360,8 @@ class CMakeBuild(build_ext):
                 "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded",
                 "-DCMAKE_C_FLAGS=/MT",
                 "-DCMAKE_CXX_FLAGS=/MT",
-                "-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=True"
+                "-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON",
+                "-DCMAKE_SUPPORT_WINDOWS_EXPORT_ALL_SYMBOLS=ON",
             ]
 
         if "CMAKE_ARGS" in os.environ:
@@ -415,7 +419,11 @@ class CMakeBuild(build_ext):
             cwd=build_temp,
             check=True,
         )
-        generate(build_temp / "include", extdir / PACKAGE_NAME / "_xaie.py")
+        generate(
+            build_temp / "include",
+            extdir / PACKAGE_NAME / "_xaie.py",
+            BOOTGEN_INCLUDE_PATH,
+        )
 
 
 build_temp = Path.cwd() / "build" / "temp"
