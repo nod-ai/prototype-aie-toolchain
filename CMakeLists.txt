@@ -71,14 +71,20 @@ set(AIERT_SRC_DIR ${PROJECT_SOURCE_DIR}/third_party/aie-rt/driver/src)
 # gotta add the subdirectory so the copies to build/include/xaiengine occur...
 add_subdirectory(${AIERT_SRC_DIR})
 
+string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
+if (uppercase_CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+  set(XAIE_DEBUG "XAIE_DEBUG")
+endif()
+
 target_compile_options(aienginev2 PRIVATE -Wall -Wextra -D__AIECDO__)
+target_compile_definitions(aienginev2 PUBLIC ${XAIE_DEBUG})
 get_target_property(AIERT_SRCS aienginev2 SOURCES)
 list(TRANSFORM AIERT_SRCS PREPEND ${AIERT_SRC_DIR}/)
 get_target_property(AIERT_INCLUDE_DIRECTORIES aienginev2 INCLUDE_DIRECTORIES)
 
 add_library(xaie SHARED ${AIERT_SRCS})
 set_target_properties(xaie PROPERTIES LINKER_LANGUAGE C)
-target_compile_options(xaie PRIVATE -D__AIECDO__)
+target_compile_definitions(xaie PUBLIC ${XAIE_DEBUG} __AIECDO__)
 target_link_libraries(xaie cdo_driver)
 target_include_directories(xaie PUBLIC ${AIERT_INCLUDE_DIRECTORIES})
 target_include_directories(xaie PUBLIC SYSTEM ${BOOTGEN_SRC_DIR})

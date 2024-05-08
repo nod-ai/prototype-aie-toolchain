@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from xaiepy import (
     XAie_Config,
     XAie_BackendType,
@@ -10,6 +12,7 @@ from xaiepy import (
     XAie_LocType,
     XAie_DmaUpdateBdAddr,
     XAie_TxnOpcode,
+    XAie_LoadElf,
 )
 
 XAIE_DEV_GEN_AIEML = 2
@@ -49,12 +52,16 @@ XAie_DmaUpdateBdAddr(dev_inst, tile_loc, 0, 0)
 XAie_DmaUpdateBdAddr(dev_inst, tile_loc, 0, 1)
 XAie_DmaUpdateBdAddr(dev_inst, tile_loc, 0, 2)
 
+XAie_LoadElf(
+    dev_inst, tile_loc, str(Path(__file__).parent.absolute() / "core_0_2.elf"), False
+)
+
 txn_inst: XAie_TxnInst = XAie_ExportTransactionInstance(dev_inst)
 
 offsets = [0x21D000, 0x21D020, 0x21D040]
 masks = [0xFFFC000, 0xFFFC000, 0xFFFC000]
 
-for i in range(txn_inst.contents.NumCmds):
+for i in range(3):
     opcode = XAie_TxnOpcode._reverse_map_[txn_inst.contents.CmdBuf[i].Opcode.value]
     reg_off = txn_inst.contents.CmdBuf[i].RegOff
     mask = txn_inst.contents.CmdBuf[i].Mask
@@ -66,4 +73,21 @@ for i in range(txn_inst.contents.NumCmds):
     print(f"{mask=:016x}")
     print()
 
-    assert opcode == "XAIE_IO_WRITE" and reg_off == offsets[i] and mask == masks[i] and val == 0
+    assert (
+        opcode == "XAIE_IO_WRITE"
+        and reg_off == offsets[i]
+        and mask == masks[i]
+        and val == 0
+    )
+
+i = 4
+opcode = XAie_TxnOpcode._reverse_map_[txn_inst.contents.CmdBuf[i].Opcode.value]
+reg_off = txn_inst.contents.CmdBuf[i].RegOff
+mask = txn_inst.contents.CmdBuf[i].Mask
+val = txn_inst.contents.CmdBuf[i].Value
+
+print(f"{opcode=}")
+print(f"{reg_off=:016x}")
+print(f"{val=}")
+print(f"{mask=:016x}")
+print()

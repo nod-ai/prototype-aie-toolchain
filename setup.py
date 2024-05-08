@@ -324,7 +324,7 @@ class CMakeBuild(build_ext):
     def build_extension(self, ext: CMakeExtension) -> None:
         ext_fullpath = Path.cwd() / self.get_ext_fullpath(ext.name)
         extdir = ext_fullpath.parent.resolve()
-        cfg = "Release"
+        cfg = "Debug" if check_env("DEBUG") else "Release"
 
         cmake_generator = os.environ.get("CMAKE_GENERATOR", "Ninja")
 
