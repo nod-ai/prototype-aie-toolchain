@@ -421,7 +421,7 @@ class CMakeBuild(build_ext):
         )
         generate(
             build_temp / "include",
-            extdir / PACKAGE_NAME / "_xaie.py",
+            extdir / PACKAGE_NAME / "__init__.py",
             BOOTGEN_INCLUDE_PATH,
         )
 

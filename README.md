@@ -3,7 +3,7 @@ AIE-RT + Python
 
 ```shell
 $ pip install xaiepy -f https://github.com/makslevental/xaiepy/releases/expanded_assets/latest
-$ python tests/test_xaie_ctypes.py
+$ python tests/test_basic.py
 
 opcode='XAIE_IO_WRITE'
 reg_off=000000000021d000

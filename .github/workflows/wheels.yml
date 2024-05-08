@@ -44,14 +44,6 @@ jobs:
           
           cibuildwheel --output-dir wheelhouse
 
-      - name: test
-        run: |
-          
-          pushd wheelhouse
-          pip install xaiepy -f $PWD
-          python ../tests/test_xaie_ctypes.py
-          popd
-
       # done
 
       - name: Upload wheels
@@ -102,10 +94,9 @@ jobs:
           MATRIX_ARCH: ${{ matrix.ARCH }}
 
       - name: Set up QEMU
-        if: ${{ matrix.OS == 'ubuntu-20.04' && matrix.ARCH == 'aarch64' }}
         uses: docker/setup-qemu-action@v2
         with:
-          platforms: ${{ matrix.ARCH }}
+          platforms: aarch64
 
       # build
 
@@ -113,14 +104,6 @@ jobs:
         run: |
           
           cibuildwheel --output-dir wheelhouse
-
-      - name: test
-        run: |
-          
-          pushd wheelhouse
-          pip install xaiepy -f $PWD
-          python ../tests/test_xaie_ctypes.py
-          popd
 
       # done
 

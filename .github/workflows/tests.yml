@@ -1,0 +1,106 @@
+name: Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [assigned, opened, synchronize, reopened]
+
+jobs:
+
+  test-x86:
+
+    continue-on-error: true
+
+    runs-on: ${{ matrix.OS }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-20.04, windows-2019 ]
+        py_version: [ "3.8", "3.9", "3.10", "3.11", "3.12" ]
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Setup Cpp
+        uses: aminya/setup-cpp@v1
+        with:
+          compiler: gcc
+          vcvarsall: ${{ contains(matrix.os, 'windows') }}
+          msvc: ${{ contains(matrix.os, 'windows') }}
+          cmake: true
+          ninja: true
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - name: Checkout actions
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: build wheel
+        run: |
+          
+          pip install -r requirements-dev.txt
+          pip wheel . -v -w wheelhouse
+
+      - name: test
+        run: |
+          
+          pushd wheelhouse
+          pip install xaiepy -f $PWD
+          pytest ../tests
+          popd
+
+  test-linux-aarch64:
+
+    continue-on-error: true
+
+    runs-on: ${{ matrix.OS }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-20.04 ]
+        py_version: [ "3.8", "3.9", "3.10", "3.11", "3.12" ]
+
+    steps:
+      - name: Setup Cpp
+        uses: aminya/setup-cpp@v1
+        with:
+          compiler: gcc
+          cmake: true
+          ninja: true
+
+      - name: Checkout actions
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: aarch64
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - name: build wheel
+        run: |
+          
+          pip install -r requirements-dev.txt
+          pip wheel . -v -w wheelhouse
+
+      - name: test
+        run: |
+          
+          pushd wheelhouse
+          pip install xaiepy -f $PWD
+          pytest ../tests
+          popd

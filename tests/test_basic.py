@@ -38,7 +38,7 @@ config = XAie_Config(
     (XAIE_MEM_TILE_ROW_START + 1),
     (6 - 1 - 1),
     XAie_PartitionProp(),
-    XAie_BackendType.XAIE_IO_BACKEND_CDO,
+    XAie_BackendType.XAIE_IO_BACKEND_DEBUG,
 )
 
 dev_inst = XAie_DevInst()
@@ -62,10 +62,11 @@ offsets = [0x21D000, 0x21D020, 0x21D040]
 masks = [0xFFFC000, 0xFFFC000, 0xFFFC000]
 
 for i in range(3):
-    opcode = XAie_TxnOpcode._reverse_map_[txn_inst.contents.CmdBuf[i].Opcode.value]
-    reg_off = txn_inst.contents.CmdBuf[i].RegOff
-    mask = txn_inst.contents.CmdBuf[i].Mask
-    val = txn_inst.contents.CmdBuf[i].Value
+    op = txn_inst.contents.CmdBuf[i]
+    opcode = XAie_TxnOpcode._reverse_map_[op.Opcode.value]
+    reg_off = op.RegOff
+    mask = op.Mask
+    val = op.Value
 
     print(f"{opcode=}")
     print(f"{reg_off=:016x}")
@@ -81,13 +82,14 @@ for i in range(3):
     )
 
 i = 4
-opcode = XAie_TxnOpcode._reverse_map_[txn_inst.contents.CmdBuf[i].Opcode.value]
-reg_off = txn_inst.contents.CmdBuf[i].RegOff
-mask = txn_inst.contents.CmdBuf[i].Mask
-val = txn_inst.contents.CmdBuf[i].Value
+op = txn_inst.contents.CmdBuf[i]
+opcode = XAie_TxnOpcode._reverse_map_[op.Opcode.value]
+reg_off = op.RegOff
+data_ptr = op.DataPtr
+size = op.Size
 
 print(f"{opcode=}")
 print(f"{reg_off=:016x}")
-print(f"{val=}")
-print(f"{mask=:016x}")
+print(f"{data_ptr=:016x}")
+print(f"{size}")
 print()

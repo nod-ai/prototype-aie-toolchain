@@ -5,3 +5,4 @@ cmake>=3.28
 ctypesgen
 cmake-format
 black
+pytest
