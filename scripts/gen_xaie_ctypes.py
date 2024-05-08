@@ -10,8 +10,6 @@ from ctypesgen.ctypedescs import CtypesStruct, CtypesBitfield, CtypesEnum
 from ctypesgen.expressions import ConstantExpressionNode, ExpressionNode
 from ctypesgen.printer_python import WrapperPrinter
 from ctypesgen.printer_python.printer import LIBRARYLOADER_PATH
-from setuptools import Extension, setup
-from setuptools.command.build_ext import build_ext
 
 
 def find_names_in_modules(modules):
@@ -43,6 +41,10 @@ class _WrapperPrinter(WrapperPrinter):
         self.print_header()
         self.file.write("\n")
 
+        # before everything else
+        self.file.write("from .typed_ctypes_enum import *\n")
+        self.file.write("from .cdo import *\n")
+
         self.print_preamble()
         self.file.write("\n")
 
@@ -51,7 +53,6 @@ class _WrapperPrinter(WrapperPrinter):
 
         self.print_group(self.options.libraries, "libraries", self.print_library)
         self.print_group(self.options.modules, "modules", self.print_module)
-        self.file.write("from .typed_ctypes_enum import *\n")
 
         method_table = {
             "function": self.print_function,

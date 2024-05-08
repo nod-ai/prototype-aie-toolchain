@@ -54,7 +54,7 @@ configPtr = XAie_Config(
     (XAIE_MEM_TILE_ROW_START + 1),
     (6 - 1 - 1),
     XAie_PartitionProp(),
-    XAie_BackendType.XAIE_IO_BACKEND_DEBUG,
+    XAie_BackendType.XAIE_IO_BACKEND_CDO,
 )
 
 devInst = XAie_DevInst()

@@ -6,3 +6,4 @@ ctypesgen
 cmake-format
 black
 pytest
+cffi
