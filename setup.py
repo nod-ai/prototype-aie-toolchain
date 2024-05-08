@@ -28,18 +28,15 @@ class CMakeBuild(build_ext):
 
         cmake_generator = os.environ.get("CMAKE_GENERATOR", "Ninja")
 
-        RUN_TESTS = 1 if check_env("RUN_TESTS") else 0
         # make windows happy
         PYTHON_EXECUTABLE = str(Path(sys.executable))
         CMAKE_MODULE_PATH = str(
             Path(__file__).parent / "third_party" / "aie-rt" / "fal" / "cmake"
         )
-        BOOTGEN_INCLUDE_PATH = str(Path(__file__).parent / "third_party" / "bootgen")
         if platform.system() == "Windows":
             PYTHON_EXECUTABLE = PYTHON_EXECUTABLE.replace("\\", "\\\\")
             # i have no clue - cmake parses these at different points...?
             CMAKE_MODULE_PATH = CMAKE_MODULE_PATH.replace("\\", "//")
-            BOOTGEN_INCLUDE_PATH = BOOTGEN_INCLUDE_PATH.replace("\\", "//")
 
         cmake_args = [
             f"-B{build_temp}",
@@ -59,6 +56,7 @@ class CMakeBuild(build_ext):
                 "-DCMAKE_CXX_COMPILER=cl",
                 "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded",
                 "-DCMAKE_C_FLAGS=/MT",
+                "-DCMAKE_SHARED_LINKER_FLAGS=/FORCE:UNRESOLVED",
                 "-DCMAKE_CXX_FLAGS=/MT",
                 "-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON",
                 "-DCMAKE_SUPPORT_WINDOWS_EXPORT_ALL_SYMBOLS=ON",
@@ -95,7 +93,7 @@ class CMakeBuild(build_ext):
             if not single_config:
                 build_args += ["--config", cfg]
 
-        if sys.platform.startswith("darwin"):
+        if platform.system() == "Darwin":
             osx_version = os.getenv("OSX_VERSION", "11.6")
             cmake_args += [f"-DCMAKE_OSX_DEPLOYMENT_TARGET={osx_version}"]
             # Cross-compile support for macOS - respect ARCHFLAGS if set
@@ -119,27 +117,25 @@ class CMakeBuild(build_ext):
             cwd=build_temp,
             check=True,
         )
-        subprocess.run(
-            ["ls", "-lah"],
-            cwd=Path.cwd(),
-            check=True,
-        )
-        subprocess.run(
-            ["ls", "-lah"],
-            cwd=Path(__file__).parent,
-            check=True,
-        )
 
-        sys.path.append(str(Path(__file__).parent))
+        HERE = Path(__file__).parent
+        sys.path.append(str(HERE))
         from scripts import gen_xaie_ctypes
         from scripts import gen_cdo
 
         gen_xaie_ctypes.generate(
             build_temp / "include",
             extdir / PACKAGE_NAME / "__init__.py",
-            BOOTGEN_INCLUDE_PATH,
+            HERE / "include",
         )
-        shlib_ext = "dll" if platform.system() == "Windows" else "so"
+
+        if platform.system() in {"Darwin", "Linux"}:
+            shlib_ext = "so"
+        elif platform.system() == "Windows":
+            shlib_ext = "pyd"
+        else:
+            raise NotImplementedError(f"unknown platform {platform.system()}")
+
         gen_cdo.build_ffi(
             str(build_temp), str(extdir / PACKAGE_NAME / f"_cdo.{shlib_ext}")
         )

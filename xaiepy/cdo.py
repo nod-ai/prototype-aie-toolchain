@@ -1,12 +1,18 @@
+import platform
 import sys
-from os import RTLD_GLOBAL, RTLD_NOW
 
-old = sys.getdlopenflags()
-try:
-    sys.setdlopenflags(RTLD_GLOBAL | RTLD_NOW)
+
+if platform.system() != "Windows":
+    from os import RTLD_GLOBAL, RTLD_NOW
+
+    old = sys.getdlopenflags()
+    try:
+        sys.setdlopenflags(RTLD_GLOBAL | RTLD_NOW)
+        from ._cdo import ffi
+    finally:
+        sys.setdlopenflags(old)
+else:
     from ._cdo import ffi
-finally:
-    sys.setdlopenflags(old)
 
 
 @ffi.def_extern()

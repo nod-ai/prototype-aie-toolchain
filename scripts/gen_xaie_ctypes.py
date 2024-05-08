@@ -1,4 +1,5 @@
 import os
+import platform
 import sys
 from argparse import Namespace
 from glob import glob
@@ -249,7 +250,7 @@ class _WrapperPrinter(WrapperPrinter):
 EXCLUDED_HEADERS = {"xaie_interrupt.h"}
 
 
-def generate(xaie_build_include_dir: Path, output: Path, bootgen_include_dir: Path):
+def generate(xaie_build_include_dir: Path, output: Path, elf_include_dir: Path):
     headers = list(
         filter(
             lambda f: Path(f).name not in EXCLUDED_HEADERS,
@@ -257,14 +258,22 @@ def generate(xaie_build_include_dir: Path, output: Path, bootgen_include_dir: Pa
         )
     )
 
+    if platform.system() == "Darwin":
+        cc = "clang"
+    elif platform.system() in {"Linux", "Windows"}:
+        cc = "gcc"
+    else:
+        raise NotImplementedError(f"unknown platform {platform.system()}")
+
     args = Namespace(
         headers=headers,
         all_headers=False,
         allow_gnu_c=False,
         builtin_symbols=False,
         compile_libdirs=[str(Path(__file__).parent)],
-        cpp=f"gcc -E -I {bootgen_include_dir}",
-        cpp_defines=[],
+        cpp=f"{cc} -E -I {elf_include_dir}",
+        # knockout xlnx-ai-engine.h which include <linux>
+        cpp_defines=["_UAPI_AI_ENGINE_H_"] if platform.system() in {"Darwin", "Windows"} else [],
         cpp_undefines=[],
         debug_level=0,
         embed_preamble=True,

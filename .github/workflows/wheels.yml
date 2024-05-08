@@ -2,6 +2,9 @@ name: Wheels
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
 
@@ -19,6 +22,12 @@ jobs:
 
           - OS: windows-2019
             ARCH: AMD64
+
+          - OS: macos-12
+            ARCH: x86_64
+
+          - OS: macos-12
+            ARCH: arm64
 
     defaults:
       run:

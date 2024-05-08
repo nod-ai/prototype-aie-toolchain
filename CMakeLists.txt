@@ -8,7 +8,7 @@ set(AIERT_SRC_DIR ${PROJECT_SOURCE_DIR}/third_party/aie-rt/driver/src)
 add_subdirectory(${AIERT_SRC_DIR})
 
 string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
-if (uppercase_CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+if(uppercase_CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   set(XAIE_DEBUG "XAIE_DEBUG")
 endif()
 
@@ -23,3 +23,13 @@ set_target_properties(xaie PROPERTIES LINKER_LANGUAGE C)
 target_compile_definitions(xaie PUBLIC ${XAIE_DEBUG} __AIECDO__)
 target_include_directories(xaie PUBLIC ${AIERT_INCLUDE_DIRECTORIES})
 target_include_directories(xaie PUBLIC SYSTEM ${PROJECT_SOURCE_DIR}/include)
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  target_link_options(
+    xaie
+    PUBLIC
+    -Wl,-U,_cdo_BlockSet32
+    -Wl,-U,_cdo_BlockWrite32
+    -Wl,-U,_cdo_MaskPoll
+    -Wl,-U,_cdo_MaskWrite32
+    -Wl,-U,_cdo_Write32)
+endif()

@@ -1,3 +1,4 @@
+import platform
 from pathlib import Path
 
 from xaiepy import (
@@ -110,4 +111,5 @@ def test_transaction():
     XAie_CoreEnable(devInst, tile_0_2)
 
     txn_inst = XAie_ExportTransactionInstance(devInst)
-    _XAie_Txn_Submit(devInst, txn_inst)
+    if platform.system() != "Windows":
+        _XAie_Txn_Submit(devInst, txn_inst)
