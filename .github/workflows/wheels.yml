@@ -40,12 +40,19 @@ jobs:
         with:
           submodules: true
 
-      - uses: ./.github/actions/setup_base
-        id: setup_base
+      - name: Setup Cpp
+        uses: aminya/setup-cpp@v1
         with:
-          MATRIX_OS: ${{ matrix.OS }}
-          MATRIX_ARCH: ${{ matrix.ARCH }}
+          compiler: gcc
+          vcvarsall: ${{ contains(matrix.os, 'windows') }}
+          msvc: ${{ contains(matrix.os, 'windows') }}
+          cmake: true
+          ninja: true
 
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python_version }}
+          
       # build
 
       - name: cibuildwheel python bindings
