@@ -16,11 +16,11 @@ before-all = [
 ]
 build-verbosity = 3
 build = "cp38-* cp39-* cp310-* cp311-* cp312-*"
-skip = ["*-manylinux_i686", "*-musllinux*"]
 manylinux-aarch64-image = "manylinux_2_28"
 manylinux-x86_64-image = "manylinux_2_28"
 
 [tool.cibuildwheel.linux]
+skip = ["*-manylinux_i686", "*-musllinux*"]
 before-build = [
     "pip install -r requirements-dev.txt",
     "yum install -y epel-release && yum install -y openssl openssl-devel"
