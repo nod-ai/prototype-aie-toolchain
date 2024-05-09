@@ -4,6 +4,7 @@ requires = [
     "wheel",
     "cmake>=3.12",
     "ctypesgen",
+    "ninja",
     "cffi"
 ]
 build-backend = "setuptools.build_meta"
@@ -22,11 +23,8 @@ manylinux-x86_64-image = "manylinux_2_28"
 skip = ["*-manylinux_i686", "*-musllinux*"]
 before-build = [
     "pip install -r requirements-dev.txt",
-    "yum install -y epel-release && yum install -y ninja-build openssl openssl-devel"
+    "yum install -y epel-release && yum install -y openssl openssl-devel"
 ]
 
 [tool.cibuildwheel.windows]
 skip = ["*-win32"]
-before-build = [
-    "pip install -r requirements-dev.txt"
-]

@@ -49,10 +49,6 @@ jobs:
           cmake: true
           ninja: true
 
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python_version }}
-          
       # build
 
       - name: cibuildwheel python bindings
@@ -74,29 +70,6 @@ jobs:
     continue-on-error: true
 
     runs-on: ${{ matrix.OS }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - OS: ubuntu-20.04
-            ARCH: aarch64
-            PY_VERSION: "cp38"
-
-          - OS: ubuntu-20.04
-            ARCH: aarch64
-            PY_VERSION: "cp39"
-
-          - OS: ubuntu-20.04
-            ARCH: aarch64
-            PY_VERSION: "cp310"
-
-          - OS: ubuntu-20.04
-            ARCH: aarch64
-            PY_VERSION: "cp311"
-
-          - OS: ubuntu-20.04
-            ARCH: aarch64
-            PY_VERSION: "cp312"
 
     steps:
       - name: Checkout actions
@@ -107,8 +80,8 @@ jobs:
       - uses: ./.github/actions/setup_base
         id: setup_base
         with:
-          MATRIX_OS: ${{ matrix.OS }}
-          MATRIX_ARCH: ${{ matrix.ARCH }}
+          MATRIX_OS: ubuntu-20.04
+          MATRIX_ARCH: aarch64
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
