@@ -28,3 +28,6 @@ before-build = [
 
 [tool.cibuildwheel.windows]
 skip = ["*-win32"]
+before-build = [
+    "pip install -r requirements-dev.txt"
+]
