@@ -66,20 +66,7 @@ class CMakeBuild(build_ext):
             cmake_args += [item for item in os.environ["CMAKE_ARGS"].split(" ") if item]
 
         build_args = []
-        if self.compiler.compiler_type != "msvc":
-            if not cmake_generator or cmake_generator == "Ninja":
-                try:
-                    import ninja
-
-                    ninja_executable_path = Path(ninja.BIN_DIR) / "ninja"
-                    cmake_args += [
-                        "-GNinja",
-                        f"-DCMAKE_MAKE_PROGRAM:FILEPATH={ninja_executable_path}",
-                    ]
-                except ImportError:
-                    pass
-
-        else:
+        if self.compiler.compiler_type == "msvc":
             single_config = any(x in cmake_generator for x in {"NMake", "Ninja"})
             contains_arch = any(x in cmake_generator for x in {"ARM", "Win64"})
             if not single_config and not contains_arch:
