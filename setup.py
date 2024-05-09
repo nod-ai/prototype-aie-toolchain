@@ -28,11 +28,10 @@ class CMakeBuild(build_ext):
 
         cmake_generator = os.environ.get("CMAKE_GENERATOR", "Ninja")
 
+        HERE = Path(__file__).parent.absolute()
         # make windows happy
         PYTHON_EXECUTABLE = str(Path(sys.executable))
-        CMAKE_MODULE_PATH = str(
-            Path(__file__).parent / "third_party" / "aie-rt" / "fal" / "cmake"
-        )
+        CMAKE_MODULE_PATH = str(HERE / "third_party" / "aie-rt" / "fal" / "cmake")
         if platform.system() == "Windows":
             PYTHON_EXECUTABLE = PYTHON_EXECUTABLE.replace("\\", "\\\\")
             # i have no clue - cmake parses these at different points...?
@@ -40,7 +39,7 @@ class CMakeBuild(build_ext):
 
         cmake_args = [
             f"-B{build_temp}",
-            f"-G {cmake_generator}",
+            f"-G{cmake_generator}",
             f"-DCMAKE_MODULE_PATH={CMAKE_MODULE_PATH}",
             "-DCMAKE_PLATFORM_NO_VERSIONED_SONAME=ON",
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir / PACKAGE_NAME}",
@@ -105,7 +104,6 @@ class CMakeBuild(build_ext):
             check=True,
         )
 
-        HERE = Path(__file__).parent
         sys.path.append(str(HERE))
         from scripts import gen_xaie_ctypes
         from scripts import gen_cdo

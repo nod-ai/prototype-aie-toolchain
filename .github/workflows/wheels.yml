@@ -69,7 +69,7 @@ jobs:
 
     continue-on-error: true
 
-    runs-on: ${{ matrix.OS }}
+    runs-on: ubuntu-20.04
 
     steps:
       - name: Checkout actions
@@ -77,11 +77,13 @@ jobs:
         with:
           submodules: true
 
-      - uses: ./.github/actions/setup_base
-        id: setup_base
-        with:
-          MATRIX_OS: ubuntu-20.04
-          MATRIX_ARCH: aarch64
+      - name: Install cross-compilation toolchain
+        shell: bash
+        run: |
+          
+          sudo apt-get update
+          sudo apt-get install -y binutils-aarch64-linux-gnu \
+            g++-aarch64-linux-gnu gcc-aarch64-linux-gnu
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -93,6 +95,7 @@ jobs:
       - name: cibuildwheel python bindings aarch64
         run: |
           
+          pip install cibuildwheel
           cibuildwheel --output-dir wheelhouse
 
       # done
