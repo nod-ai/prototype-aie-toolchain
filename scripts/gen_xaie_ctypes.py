@@ -265,6 +265,11 @@ def generate(xaie_build_include_dir: Path, output: Path, elf_include_dir: Path):
     else:
         raise NotImplementedError(f"unknown platform {platform.system()}")
 
+    cpp_defines = ["__AIECDO__"]
+    if platform.system() in {"Darwin", "Windows"}:
+        # knockout xlnx-ai-engine.h which include <linux>
+        cpp_defines.append("_UAPI_AI_ENGINE_H_")
+
     args = Namespace(
         headers=headers,
         all_headers=False,
@@ -272,8 +277,7 @@ def generate(xaie_build_include_dir: Path, output: Path, elf_include_dir: Path):
         builtin_symbols=False,
         compile_libdirs=[str(Path(__file__).parent)],
         cpp=f"{cc} -E -I {elf_include_dir}",
-        # knockout xlnx-ai-engine.h which include <linux>
-        cpp_defines=["_UAPI_AI_ENGINE_H_"] if platform.system() in {"Darwin", "Windows"} else [],
+        cpp_defines=cpp_defines,
         cpp_undefines=[],
         debug_level=0,
         embed_preamble=True,

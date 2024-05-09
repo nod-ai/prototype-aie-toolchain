@@ -40,17 +40,21 @@ jobs:
         with:
           submodules: true
 
-      - uses: ./.github/actions/setup_base
-        id: setup_base
+      - name: Setup Cpp
+        uses: aminya/setup-cpp@v1
         with:
-          MATRIX_OS: ${{ matrix.OS }}
-          MATRIX_ARCH: ${{ matrix.ARCH }}
+          compiler: gcc
+          vcvarsall: ${{ contains(matrix.os, 'windows') }}
+          msvc: ${{ contains(matrix.os, 'windows') }}
+          cmake: true
+          ninja: true
 
       # build
 
       - name: cibuildwheel python bindings
         run: |
-          
+
+          pip install cibuildwheel
           cibuildwheel --output-dir wheelhouse
 
       # done
@@ -65,30 +69,7 @@ jobs:
 
     continue-on-error: true
 
-    runs-on: ${{ matrix.OS }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - OS: ubuntu-20.04
-            ARCH: aarch64
-            PY_VERSION: "cp38"
-
-          - OS: ubuntu-20.04
-            ARCH: aarch64
-            PY_VERSION: "cp39"
-
-          - OS: ubuntu-20.04
-            ARCH: aarch64
-            PY_VERSION: "cp310"
-
-          - OS: ubuntu-20.04
-            ARCH: aarch64
-            PY_VERSION: "cp311"
-
-          - OS: ubuntu-20.04
-            ARCH: aarch64
-            PY_VERSION: "cp312"
+    runs-on: ubuntu-20.04
 
     steps:
       - name: Checkout actions
@@ -96,11 +77,13 @@ jobs:
         with:
           submodules: true
 
-      - uses: ./.github/actions/setup_base
-        id: setup_base
-        with:
-          MATRIX_OS: ${{ matrix.OS }}
-          MATRIX_ARCH: ${{ matrix.ARCH }}
+      - name: Install cross-compilation toolchain
+        shell: bash
+        run: |
+          
+          sudo apt-get update
+          sudo apt-get install -y binutils-aarch64-linux-gnu \
+            g++-aarch64-linux-gnu gcc-aarch64-linux-gnu
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -112,6 +95,7 @@ jobs:
       - name: cibuildwheel python bindings aarch64
         run: |
           
+          pip install cibuildwheel
           cibuildwheel --output-dir wheelhouse
 
       # done

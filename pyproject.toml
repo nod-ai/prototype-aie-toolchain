@@ -1,31 +1,33 @@
-[build-system]
-requires = [
-    "setuptools>=42",
-    "wheel",
-    "cmake>=3.12",
-    "ctypesgen",
-    "ninja",
-    "cffi"
-]
-build-backend = "setuptools.build_meta"
-
 [tool.cibuildwheel]
-before-all = [
-    "rm -rf {project}/build",
-    "rm -rf *egg*",
-]
+environment = { PIP_NO_BUILD_ISOLATION = "false" }
 build-verbosity = 3
-#build = "cp38-* cp39-* cp310-* cp311-* cp312-*"
-build = "cp311-*"
-skip = ["*-manylinux_i686", "*-musllinux*"]
+build = "cp38-* cp39-* cp310-* cp311-* cp312-*"
 manylinux-aarch64-image = "manylinux_2_28"
 manylinux-x86_64-image = "manylinux_2_28"
 
 [tool.cibuildwheel.linux]
+skip = ["*-manylinux_i686", "*-musllinux*"]
+environment-pass = [
+    "PIP_NO_BUILD_ISOLATION",
+]
 before-build = [
+    "rm -rf {project}/build",
+    "rm -rf *egg*",
     "pip install -r requirements-dev.txt",
-    "yum install -y epel-release && yum install -y openssl openssl-devel"
+    "yum install -y epel-release && yum install -y ninja-build cmake openssl openssl-devel"
+]
+
+[tool.cibuildwheel.macos]
+before-build = [
+    "rm -rf {project}/build",
+    "rm -rf *egg*",
+    "pip install -r requirements-dev.txt",
 ]
 
 [tool.cibuildwheel.windows]
 skip = ["*-win32"]
+before-build = [
+    "rm -rf {project}/build",
+    "rm -rf *egg*",
+    "pip install -r requirements-dev.txt",
+]

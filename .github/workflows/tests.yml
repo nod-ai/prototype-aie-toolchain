@@ -48,7 +48,7 @@ jobs:
         run: |
           
           pip install -r requirements-dev.txt
-          pip wheel . -v -w wheelhouse
+          pip wheel . -v -w wheelhouse --no-build-isolation
 
       - name: test
         run: |
@@ -102,7 +102,7 @@ jobs:
         run: |
           
           pip install -r requirements-dev.txt
-          pip wheel . -v -w wheelhouse
+          pip wheel . -v -w wheelhouse --no-build-isolation
 
       - name: test
         run: |
