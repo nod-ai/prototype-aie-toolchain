@@ -108,7 +108,7 @@ jobs:
 
   upload_bindings_wheels:
 
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && github.ref_name == 'main'
 
     needs: [build, build-linux-aarch64]
 

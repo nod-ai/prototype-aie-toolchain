@@ -6,13 +6,16 @@ import sys
 from pathlib import Path
 from pprint import pprint
 
+from pip._internal.network.session import PipSession
+from pip._internal.req import parse_requirements
 from setuptools import Extension, setup
 from setuptools.command.build_ext import build_ext
+from setuptools.command.editable_wheel import editable_wheel
 
 
 class CMakeExtension(Extension):
     def __init__(self, name: str, sourcedir: str = "") -> None:
-        super().__init__(name, sources=[])
+        super().__init__(name, sources=[], optional=True)
         self.sourcedir = os.fspath(Path(sourcedir).resolve())
 
 
@@ -20,15 +23,28 @@ def check_env(build):
     return os.environ.get(build, 0) in {"1", "true", "True", "ON", "YES"}
 
 
+EDITABLE = False
+
+
+class editable_wheel(editable_wheel):
+    def run(self):
+        global EDITABLE
+        EDITABLE = True
+        super().run()
+
+
 class CMakeBuild(build_ext):
     def build_extension(self, ext: CMakeExtension) -> None:
+        HERE = Path(__file__).parent.absolute()
         ext_fullpath = Path.cwd() / self.get_ext_fullpath(ext.name)
         extdir = ext_fullpath.parent.resolve()
         cfg = "Debug" if check_env("DEBUG") else "Release"
 
+        if EDITABLE:
+            extdir = HERE
+
         cmake_generator = os.environ.get("CMAKE_GENERATOR", "Ninja")
 
-        HERE = Path(__file__).parent.absolute()
         # make windows happy
         PYTHON_EXECUTABLE = str(Path(sys.executable))
         CMAKE_MODULE_PATH = str(HERE / "third_party" / "aie-rt" / "fal" / "cmake")
@@ -138,8 +154,13 @@ setup(
     author_email="maksim.levental@gmail.com",
     long_description_content_type="text/markdown",
     ext_modules=[CMakeExtension(PACKAGE_NAME, sourcedir=".")],
-    cmdclass={"build_ext": CMakeBuild},
+    cmdclass={"editable_wheel": editable_wheel, "build_ext": CMakeBuild},
     zip_safe=False,
     packages=[PACKAGE_NAME],
     include_package_data=True,
+    install_requires=[
+        str(ir.requirement)
+        for ir in parse_requirements("requirements-dev.txt", session=PipSession())
+    ],
+    python_requires=">=3.8",
 )
