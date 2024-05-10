@@ -30,6 +30,8 @@ from xaiepy import (
     XAie_ExportTransactionInstance,
     XAie_TxnOpcode,
     _XAie_Txn_Submit,
+    get_written_addresses,
+    get_addr_tile, reset_written_addresses,
 )
 
 XAIE_DEV_GEN_AIEML = 2
@@ -66,6 +68,8 @@ XAie_CfgInitialize(devInst, configPtr)
 
 
 def test_transaction():
+    reset_written_addresses()
+
     XAie_StartTransaction(devInst, XAIE_TRANSACTION_DISABLE_AUTO_FLUSH)
 
     XAie_UpdateNpiAddr(devInst, 0)
@@ -113,3 +117,7 @@ def test_transaction():
     txn_inst = XAie_ExportTransactionInstance(devInst)
     if platform.system() != "Windows":
         _XAie_Txn_Submit(devInst, txn_inst)
+
+        for addr, data in get_written_addresses().items():
+            c, r, offset = get_addr_tile(addr)
+            print(c, r, f"{offset=:08x}", f"{data=:08x}")

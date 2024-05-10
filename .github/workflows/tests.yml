@@ -55,15 +55,20 @@ jobs:
           
           pushd wheelhouse
           pip install xaiepy -f $PWD
-          pytest ../tests
+          if [ ${{ matrix.os }} == 'windows-2019' ]; then
+            pytest -s ../tests
+          else
+            pytest --capture=tee-sys ../tests
+          fi
           popd
 
-      - name: Upload wheels
-        if: (success() || failure())
-        uses: actions/upload-artifact@v3
-        with:
-          path: wheelhouse/*.whl
-          name: build_artifact_python_bindings
+      - name: Test mwe
+        shell: bash
+        run: |
+          
+          pushd examples
+          python e2e.py
+          popd
 
   test-linux-aarch64:
 
@@ -109,12 +114,13 @@ jobs:
           
           pushd wheelhouse
           pip install xaiepy -f $PWD
-          pytest ../tests
+          pytest -s ../tests/*.py
           popd
 
-      - name: Upload wheels
-        if: (success() || failure())
-        uses: actions/upload-artifact@v3
-        with:
-          path: wheelhouse/*.whl
-          name: build_artifact_python_bindings
+      - name: Test mwe
+        shell: bash
+        run: |
+          
+          pushd examples
+          python e2e.py
+          popd

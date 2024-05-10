@@ -1,4 +1,5 @@
-setuptools>=42
+# pep 660 editable wheels
+setuptools>=64
 wheel
 ninja
 cmake>=3.28

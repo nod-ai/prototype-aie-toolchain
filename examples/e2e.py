@@ -1,3 +1,4 @@
+import platform
 from pathlib import Path
 
 from xaiepy import (
@@ -27,8 +28,10 @@ from xaiepy import (
     XAie_DmaDesc,
     XAie_StartTransaction,
     XAie_ExportTransactionInstance,
-    XAie_TxnOpcode,
     _XAie_Txn_Submit,
+    get_written_addresses,
+    get_addr_tile,
+    reset_written_addresses,
 )
 
 XAIE_DEV_GEN_AIEML = 2
@@ -40,6 +43,8 @@ XAIE_MEM_TILE_ROW_START = 1
 XAIE_PARTITION_BASE_ADDR = 0x0
 XAIE_TRANSACTION_DISABLE_AUTO_FLUSH = 0b0
 DDR_AIE_ADDR_OFFSET = 0x80000000
+
+reset_written_addresses()
 
 configPtr = XAie_Config(
     XAIE_DEV_GEN_AIEML,
@@ -107,4 +112,9 @@ XAie_EnableAieToShimDmaStrmPort(devInst, tile_0_0, 2)
 XAie_CoreEnable(devInst, tile_0_2)
 
 txn_inst = XAie_ExportTransactionInstance(devInst)
-_XAie_Txn_Submit(devInst, txn_inst)
+
+if platform.system() != "Windows":
+    _XAie_Txn_Submit(devInst, txn_inst)
+    for addr, data in get_written_addresses().items():
+        c, r, offset = get_addr_tile(addr)
+        print(c, r, f"{offset=:08x}", f"{data=:08x}")
