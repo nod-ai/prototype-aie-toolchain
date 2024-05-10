@@ -65,7 +65,6 @@ if(BUILD_PYXRT)
   find_package(Boost REQUIRED)
   include_directories(${Boost_INCLUDE_DIRS})
 
-  include_directories(SYSTEM ${PROJECT_SOURCE_DIR}/third_party/ELFIO)
   if(WIN32)
     file(
       READ
