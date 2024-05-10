@@ -80,7 +80,7 @@ def test_transaction():
     tile_0_2 = XAie_LocType(2, col)
 
     XAie_LoadElf(
-        devInst, tile_0_2, str(Path(__file__).parent.absolute() / "core_0_2.elf"), False
+        devInst, tile_0_2, str(Path(__file__).parent.absolute() / "pi.elf"), False
     )
 
     XAie_CoreReset(devInst, tile_0_2)
