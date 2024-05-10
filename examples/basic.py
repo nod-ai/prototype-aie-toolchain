@@ -54,7 +54,7 @@ XAie_DmaUpdateBdAddr(dev_inst, tile_loc, 0, 1)
 XAie_DmaUpdateBdAddr(dev_inst, tile_loc, 0, 2)
 
 XAie_LoadElf(
-    dev_inst, tile_loc, str(Path(__file__).parent.absolute() / "core_0_2.elf"), False
+    dev_inst, tile_loc, str(Path(__file__).parent.absolute() / "pi.elf"), False
 )
 
 txn_inst: XAie_TxnInst = XAie_ExportTransactionInstance(dev_inst)

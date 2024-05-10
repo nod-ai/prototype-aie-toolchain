@@ -1,3 +1,4 @@
+-r requirements.txt
 # pep 660 editable wheels
 setuptools>=64
 wheel
@@ -7,5 +8,4 @@ ctypesgen
 cmake-format
 black
 pytest
-cffi
 pybind11[global]

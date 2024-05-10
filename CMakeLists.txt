@@ -48,12 +48,23 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     -Wl,-U,_cdo_Write32)
 endif()
 
+option(OUTPUT_DIR "Output directory" ${CMAKE_CURRENT_BINARY_DIR})
+
+set_target_properties(
+  xaie
+  PROPERTIES
+  LIBRARY_OUTPUT_DIRECTORY
+  ${OUTPUT_DIR}
+  ARCHIVE_OUTPUT_DIRECTORY
+  ${OUTPUT_DIR}
+  RUNTIME_OUTPUT_DIRECTORY
+  ${OUTPUT_DIR})
+
 option(BUILD_PYXRT "Build XRT" ON)
 if(BUILD_PYXRT)
   find_package(Boost REQUIRED)
   include_directories(${Boost_INCLUDE_DIRS})
 
-  include_directories(SYSTEM ${PROJECT_SOURCE_DIR}/third_party/ELFIO)
   if(WIN32)
     file(
       READ
@@ -71,5 +82,14 @@ if(BUILD_PYXRT)
       "${FILE_CONTENTS}")
   endif()
   add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/XRT/src)
+  set_target_properties(
+    pyxrt
+    PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY
+    ${OUTPUT_DIR}
+    ARCHIVE_OUTPUT_DIRECTORY
+    ${OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY
+    ${OUTPUT_DIR})
   add_dependencies(xaie pyxrt)
 endif()

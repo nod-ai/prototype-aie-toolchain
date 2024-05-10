@@ -33,6 +33,11 @@ jobs:
         with:
           submodules: true
 
+      - name: Get ELFIO
+        run: |
+          
+          git submodule update --init --recursive
+
       - uses: ./.github/workflows/base
         id: base
         with:
@@ -96,6 +101,11 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: true
+
+      - name: Get ELFIO
+        run: |
+          
+          git submodule update --init --recursive
 
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1

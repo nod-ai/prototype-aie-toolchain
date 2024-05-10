@@ -58,9 +58,7 @@ class CMakeBuild(build_ext):
             f"-G{cmake_generator}",
             f"-DCMAKE_MODULE_PATH={CMAKE_MODULE_PATH}",
             "-DCMAKE_PLATFORM_NO_VERSIONED_SONAME=ON",
-            f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir / PACKAGE_NAME}",
-            f"-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY={extdir / PACKAGE_NAME}",
-            f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={extdir / PACKAGE_NAME}",
+            f"-DOUTPUT_DIR={extdir / PACKAGE_NAME}",
             f"-DPython3_EXECUTABLE={PYTHON_EXECUTABLE}",
             f"-DPY_VERSION={'.'.join(map(str, sys.version_info[:2]))}",
             f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
