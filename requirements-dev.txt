@@ -8,3 +8,4 @@ cmake-format
 black
 pytest
 cffi
+pybind11[global]
