@@ -62,9 +62,11 @@ class CMakeBuild(build_ext):
             f"-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY={extdir / PACKAGE_NAME}",
             f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={extdir / PACKAGE_NAME}",
             f"-DPython3_EXECUTABLE={PYTHON_EXECUTABLE}",
+            f"-DPY_VERSION={'.'.join(map(str, sys.version_info[:2]))}",
             f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
             "-DCMAKE_C_VISIBILITY_PRESET=default",
         ]
+
         if platform.system() == "Windows":
             cmake_args += [
                 "-DCMAKE_C_COMPILER=cl",
@@ -72,7 +74,7 @@ class CMakeBuild(build_ext):
                 "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded",
                 "-DCMAKE_C_FLAGS=/MT",
                 "-DCMAKE_SHARED_LINKER_FLAGS=/FORCE:UNRESOLVED",
-                "-DCMAKE_CXX_FLAGS=/MT",
+                "-DCMAKE_CXX_FLAGS=/MT /EHsc",
                 "-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON",
                 "-DCMAKE_SUPPORT_WINDOWS_EXPORT_ALL_SYMBOLS=ON",
             ]
@@ -96,6 +98,7 @@ class CMakeBuild(build_ext):
                 build_args += ["--config", cfg]
 
         if platform.system() == "Darwin":
+            cmake_args += ["-DBUILD_PYXRT=OFF"]
             osx_version = os.getenv("OSX_VERSION", "11.6")
             cmake_args += [f"-DCMAKE_OSX_DEPLOYMENT_TARGET={osx_version}"]
             # Cross-compile support for macOS - respect ARCHFLAGS if set
@@ -108,16 +111,18 @@ class CMakeBuild(build_ext):
         else:
             build_args += [f"-j{os.environ.get('PARALLEL_LEVEL')}"]
 
+        env = os.environ.copy()
         print("ENV", pprint(os.environ), file=sys.stderr)
         print("CMAKE_ARGS", cmake_args, file=sys.stderr)
 
         subprocess.run(
-            ["cmake", ext.sourcedir, *cmake_args], cwd=build_temp, check=True
+            ["cmake", ext.sourcedir, *cmake_args], cwd=build_temp, check=True, env=env
         )
         subprocess.run(
             ["cmake", "--build", ".", "--target", "xaie", *build_args],
             cwd=build_temp,
             check=True,
+            env=env,
         )
 
         sys.path.append(str(HERE))

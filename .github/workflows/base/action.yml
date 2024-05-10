@@ -1,0 +1,43 @@
+name: "Setup base"
+
+inputs:
+  OS:
+    description: 'matrix.os'
+    required: true
+  ARCH:
+    description: 'matrix.arch'
+    required: true
+
+description: ''
+
+outputs:
+  BOOST_ROOT:
+    description: ''
+    value: ${{ steps.install_boost.outputs.BOOST_ROOT }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Cpp
+      uses: aminya/setup-cpp@v1
+      with:
+        compiler: gcc
+        vcvarsall: ${{ contains(inputs.OS, 'windows') }}
+        msvc: ${{ contains(inputs.OS, 'windows') }}
+        choco: ${{ contains(inputs.OS, 'windows') }}
+        cmake: true
+        ninja: true
+
+    - uses: makslevental/mlir-wheels/actions/setup_ccache@d77bf5dc69c46a8c2738b44528749768888eb361
+      id: setup_ccache
+      with:
+        MATRIX_OS: ${{ inputs.OS }}
+        MATRIX_ARCH: ${{ inputs.ARCH }}
+        WORKSPACE_ROOT: ${{ github.workspace }}
+
+    - name: Install boost for XRT
+      if: contains(inputs.OS, 'windows') || contains(inputs.OS, 'ubuntu')
+      uses: MarkusJx/install-boost@v2.4.5
+      id: install_boost
+      with:
+        boost_version: 1.73.0

@@ -1,7 +1,21 @@
 cmake_minimum_required(VERSION 3.15)
 project(xaiepy)
+set(CMAKE_CXX_STANDARD 17)
 
 include(collect)
+
+if(POLICY CMP0144)
+  # respect all caps <PACKAGENAME>_ROOT environment variable to search for
+  # package stuff
+  cmake_policy(SET CMP0144 NEW)
+endif()
+
+if(POLICY CMP0148)
+  cmake_policy(SET CMP0148 NEW)
+endif()
+
+include(scripts/stuff.cmake)
+configure_python_dev_packages()
 
 set(AIERT_SRC_DIR ${PROJECT_SOURCE_DIR}/third_party/aie-rt/driver/src)
 # gotta add the subdirectory so the copies to build/include/xaiengine occur...
@@ -32,4 +46,30 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     -Wl,-U,_cdo_MaskPoll
     -Wl,-U,_cdo_MaskWrite32
     -Wl,-U,_cdo_Write32)
+endif()
+
+option(BUILD_PYXRT "Build XRT" ON)
+if(BUILD_PYXRT)
+  find_package(Boost REQUIRED)
+  include_directories(${Boost_INCLUDE_DIRS})
+
+  include_directories(SYSTEM ${PROJECT_SOURCE_DIR}/third_party/ELFIO)
+  if(WIN32)
+    file(
+      READ
+      ${PROJECT_SOURCE_DIR}/third_party/XRT/src/runtime_src/core/common/memalign.h
+      FILE_CONTENTS)
+    string(
+      REPLACE
+        "defined(_WINDOWS)"
+        "defined(_WINDOWS) || defined(_WIN32) || defined(WIN32) || defined(__CYGWIN__) || defined(__MINGW32__)"
+        FILE_CONTENTS
+        "${FILE_CONTENTS}")
+    file(
+      WRITE
+      ${PROJECT_SOURCE_DIR}/third_party/XRT/src/runtime_src/core/common/memalign.h
+      "${FILE_CONTENTS}")
+  endif()
+  add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/XRT/src)
+  add_dependencies(xaie pyxrt)
 endif()

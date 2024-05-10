@@ -14,7 +14,7 @@ before-build = [
     "rm -rf {project}/build",
     "rm -rf *egg*",
     "pip install -r requirements-dev.txt",
-    "yum install -y epel-release && yum install -y ninja-build cmake openssl openssl-devel"
+    "yum install -y epel-release && yum install -y ninja-build cmake openssl openssl-devel boost-devel protobuf-devel libdrm-devel ocl-icd-devel systemtap-sdt-devel rapidjson ncurses-devel zlib-static libuuid-devel"
 ]
 
 [tool.cibuildwheel.macos]

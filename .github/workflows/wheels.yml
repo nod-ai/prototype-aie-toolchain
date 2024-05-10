@@ -40,18 +40,25 @@ jobs:
         with:
           submodules: true
 
-      - name: Setup Cpp
-        uses: aminya/setup-cpp@v1
+      - uses: ./.github/workflows/base
+        if: contains(matrix.OS, 'windows')
+        id: base
         with:
-          compiler: gcc
-          vcvarsall: ${{ contains(matrix.os, 'windows') }}
-          msvc: ${{ contains(matrix.os, 'windows') }}
-          cmake: true
-          ninja: true
+          OS: ${{ matrix.OS }}
+          ARCH: ${{ matrix.ARCH }}
+
+      - name: Build and install protoc
+        if: contains(matrix.OS, 'windows')
+        run: |
+          
+          choco install -y pkgconfiglite protoc 
 
       # build
 
       - name: cibuildwheel python bindings
+        env:
+          BOOST_ROOT: ${{ steps.base.outputs.BOOST_ROOT }}
+          BOOST_VERSION: 1.73.0
         run: |
 
           pip install cibuildwheel
@@ -72,18 +79,11 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
+
       - name: Checkout actions
         uses: actions/checkout@v3
         with:
           submodules: true
-
-      - name: Install cross-compilation toolchain
-        shell: bash
-        run: |
-          
-          sudo apt-get update
-          sudo apt-get install -y binutils-aarch64-linux-gnu \
-            g++-aarch64-linux-gnu gcc-aarch64-linux-gnu
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -93,6 +93,9 @@ jobs:
       # build
 
       - name: cibuildwheel python bindings aarch64
+        env:
+          BOOST_ROOT: ${{ steps.base.outputs.BOOST_ROOT }}
+          BOOST_VERSION: 1.73.0
         run: |
           
           pip install cibuildwheel
