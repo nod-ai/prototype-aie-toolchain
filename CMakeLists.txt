@@ -52,18 +52,19 @@ option(OUTPUT_DIR "Output directory" ${CMAKE_CURRENT_BINARY_DIR})
 
 set_target_properties(
   xaie
-  PROPERTIES
-  LIBRARY_OUTPUT_DIRECTORY
-  ${OUTPUT_DIR}
-  ARCHIVE_OUTPUT_DIRECTORY
-  ${OUTPUT_DIR}
-  RUNTIME_OUTPUT_DIRECTORY
-  ${OUTPUT_DIR})
+  PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR}
+             ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR}
+             RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})
 
 option(BUILD_PYXRT "Build XRT" ON)
 if(BUILD_PYXRT)
   find_package(Boost REQUIRED)
   include_directories(${Boost_INCLUDE_DIRS})
+
+  # pyxrt and xrt in general do a ridiculous dance with drivers
+  # https://github.com/Xilinx/XRT/blob/edcae12640ce96ec597c4c0cc1b2a850cfcc5c8b/src/runtime_src/core/common/module_loader.cpp#L201-L205
+  set(CMAKE_SKIP_BUILD_RPATH ON)
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
 
   if(WIN32)
     file(
@@ -84,12 +85,8 @@ if(BUILD_PYXRT)
   add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/XRT/src)
   set_target_properties(
     pyxrt
-    PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY
-    ${OUTPUT_DIR}
-    ARCHIVE_OUTPUT_DIRECTORY
-    ${OUTPUT_DIR}
-    RUNTIME_OUTPUT_DIRECTORY
-    ${OUTPUT_DIR})
+    PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR}
+               ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR}
+               RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})
   add_dependencies(xaie pyxrt)
 endif()

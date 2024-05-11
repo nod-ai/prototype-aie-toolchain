@@ -159,22 +159,29 @@ def init_value(Addr):
 
 
 @ffi.def_extern()
-def cdo_Write32(Addr, Data):
+def cdo_Write32(Addr, Data, log=True):
     _ADDRESS_ALREADY_WRITTEN_TO[Addr] = Data
-    logger.debug(f"Write32 {Addr=:08x} {Data=:08x}")
+    if log:
+        addr_s = f"{Addr:016x}".upper()
+        data_s = f"{Data:08x}".upper()
+        logger.debug(f"Write32 Address:  0x{addr_s}  Data: 0x{data_s}")
 
 
-def Read32(Addr):
+def Read32(Addr, log=True):
     if Addr not in _ADDRESS_ALREADY_WRITTEN_TO:
         _ADDRESS_ALREADY_WRITTEN_TO[Addr] = init_value(Addr)
     Data = _ADDRESS_ALREADY_WRITTEN_TO[Addr]
-    logger.debug(f"Read32 {Addr=:08x} {Data=:08x}")
+    if log:
+        addr_s = f"{Addr:016x}".upper()
+        data_s = f"{Data:08x}".upper()
+        logger.debug(f"Read32 Address:  0x{addr_s} Data:  0x{data_s}")
     return Data
 
 
 @ffi.def_extern()
 def cdo_BlockWrite32(Addr, pData, size):
-    logger.debug(f"BlockWrite32 {Addr=:08x} {pData=} {size}")
+    addr_s = f"{Addr:016x}".upper()
+    logger.debug(f"BlockWrite32 Address:  0x{addr_s} {pData=} {size}")
     data = ffi.unpack(pData, size)
     for i, v in enumerate(data):
         cdo_Write32(Addr + i * 4, v)
@@ -182,21 +189,31 @@ def cdo_BlockWrite32(Addr, pData, size):
 
 @ffi.def_extern()
 def cdo_MaskWrite32(Addr, Mask, Data):
-    RegVal = Read32(Addr)
-    logger.debug(f"MaskWrite32 {Addr=:08x} {Mask=:08x} {RegVal=:08x} {Data=:08x}")
+    RegVal = Read32(Addr, log=False)
+    addr_s = f"{Addr:016x}".upper()
+    mask_s = f"{Mask:08x}".upper()
+    data_s = f"{Data:08x}".upper()
+    logger.debug(
+        f"MaskWrite32 Address:  0x{addr_s} Mask:  0x{mask_s}  Data:  0x{data_s}"
+    )
     RegVal &= ~Mask
-    cdo_Write32(Addr, RegVal | Data)
+    cdo_Write32(Addr, RegVal | Data, log=False)
 
 
 @ffi.def_extern()
 def cdo_MaskPoll(Addr, Mask, Expected_Value, TimeoutInMS):
-    logger.debug(f"MaskPoll {Addr=:08x} {Mask=:08x} {Expected_Value=} {TimeoutInMS}")
+    addr_s = f"{Addr:016x}".upper()
+    mask_s = f"{Mask:08x}".upper()
+    logger.debug(
+        f"MaskPoll Address:  0x{addr_s} Mask:  0x{mask_s} {Expected_Value=} {TimeoutInMS}"
+    )
     raise NotImplementedError
 
 
 @ffi.def_extern()
 def cdo_BlockSet32(Addr, Data, size):
-    logger.debug(f"BlockSet32 {Addr=:08x} {Data=} {size=}")
+    addr_s = f"{Addr:016x}".upper()
+    logger.debug(f"BlockSet32 Address:  0x{addr_s} {Data=} {size=}")
     raise NotImplementedError
 
 
@@ -207,3 +224,23 @@ def get_written_addresses():
 def reset_written_addresses():
     global _ADDRESS_ALREADY_WRITTEN_TO
     _ADDRESS_ALREADY_WRITTEN_TO = OrderedDict()
+
+
+def _npu_write32(column, row, address, value):
+    words = [None] * 3
+    op_code = 2
+    words[0] = (op_code & 0xFF) << 24
+    words[0] |= (column & 0xFF) << 16
+    words[0] |= (row & 0xFF) << 8
+    words[1] = address
+    words[2] = value
+    assert not any(w is None for w in words)
+    return words
+
+
+def get_write32s():
+    instructions = []
+    for addr, val in dict(_ADDRESS_ALREADY_WRITTEN_TO).items():
+        c, r, offset = get_addr_tile(addr)
+        instructions.extend(_npu_write32(c, r, offset, val))
+    return instructions
