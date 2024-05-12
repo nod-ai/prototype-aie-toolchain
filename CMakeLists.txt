@@ -40,8 +40,9 @@ add_library(xaie SHARED ${AIERT_SRCS})
 target_compile_definitions(xaie PUBLIC ${XAIE_DEBUG} __AIECDO__)
 target_include_directories(xaie PUBLIC ${AIERT_INCLUDE_DIRECTORIES})
 target_include_directories(xaie PUBLIC SYSTEM ${PROJECT_SOURCE_DIR}/include)
-set_target_properties(cdo_driver PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_link_libraries(xaie PRIVATE cdo_driver)
+set_target_properties(xaie PROPERTIES LINKER_LANGUAGE C
+                                      POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(xaie PUBLIC cdo_driver)
 
 set_target_properties(
   xaie
@@ -53,5 +54,7 @@ option(BUILD_PYXRT "Build XRT" ON)
 if(BUILD_PYXRT)
   set(XRT_SOURCE_DIR ${PROJECT_SOURCE_DIR}/third_party/XRT)
   include(util/pyxrt.cmake)
+  set_target_properties(xclbinutil PROPERTIES MSVC_RUNTIME_LIBRARY
+                                              MultiThreadedDLL)
   add_dependencies(xaie pyxrt xclbinutil)
 endif()

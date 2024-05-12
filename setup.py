@@ -71,7 +71,6 @@ class CMakeBuild(build_ext):
                 "-DCMAKE_CXX_COMPILER=cl",
                 "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded",
                 "-DCMAKE_C_FLAGS=/MT",
-                "-DCMAKE_SHARED_LINKER_FLAGS=/FORCE:UNRESOLVED",
                 "-DCMAKE_CXX_FLAGS=/MT /EHsc",
                 "-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON",
                 "-DCMAKE_SUPPORT_WINDOWS_EXPORT_ALL_SYMBOLS=ON",

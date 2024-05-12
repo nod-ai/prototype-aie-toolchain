@@ -45,3 +45,5 @@ string(REPLACE "void SectionHeader();" "" FILE_CONTENTS "${FILE_CONTENTS}")
 file(WRITE ${BOOTGEN_SOURCE_DIR}/cdo-driver/cdo_driver.h "${FILE_CONTENTS}")
 add_library(cdo_driver STATIC ${BOOTGEN_SOURCE_DIR}/cdo-driver/cdo_driver.c)
 target_include_directories(cdo_driver PUBLIC ${BOOTGEN_SOURCE_DIR}/cdo-driver)
+set_target_properties(cdo_driver PROPERTIES LINKER_LANGUAGE C
+                                            POSITION_INDEPENDENT_CODE ON)
