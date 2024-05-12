@@ -44,6 +44,7 @@ config = XAie_Config(
 dev_inst = XAie_DevInst()
 XAie_CfgInitialize(dev_inst, config)
 
+
 def test_transaction():
     XAie_StartTransaction(dev_inst, XAIE_TRANSACTION_DISABLE_AUTO_FLUSH)
 

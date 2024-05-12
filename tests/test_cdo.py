@@ -1,5 +1,21 @@
-import platform
+import logging
 from pathlib import Path
+
+from xaiepy.cdo import (
+    startCDOFileStream,
+    FileHeader,
+    configureHeader,
+    endCurrentCDOFileStream,
+    EnAXIdebug,
+    setEndianness,
+    Little_Endian,
+)
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(message)s",
+    datefmt="%H:%M:%S",
+)
 
 from xaiepy import (
     XAie_Config,
@@ -26,12 +42,7 @@ from xaiepy import (
     StrmSwPortType,
     XAie_EnableAieToShimDmaStrmPort,
     XAie_DmaDesc,
-    XAie_StartTransaction,
-    XAie_ExportTransactionInstance,
-    XAie_TxnOpcode,
-    _XAie_Txn_Submit,
-    get_written_addresses,
-    get_addr_tile, reset_written_addresses,
+    XAie_ErrorHandlingInit,
 )
 
 XAIE_DEV_GEN_AIEML = 2
@@ -44,41 +55,42 @@ XAIE_PARTITION_BASE_ADDR = 0x0
 XAIE_TRANSACTION_DISABLE_AUTO_FLUSH = 0b0
 DDR_AIE_ADDR_OFFSET = 0x80000000
 
-configPtr = XAie_Config(
-    XAIE_DEV_GEN_AIEML,
-    XAIE_BASE_ADDR,
-    XAIE_COL_SHIFT,
-    XAIE_ROW_SHIFT,
-    6,
-    5,
-    XAIE_SHIM_ROW,
-    XAIE_MEM_TILE_ROW_START,
-    1,
-    (XAIE_MEM_TILE_ROW_START + 1),
-    (6 - 1 - 1),
-    XAie_PartitionProp(),
-    XAie_BackendType.XAIE_IO_BACKEND_CDO,
-)
-
-devInst = XAie_DevInst()
-
-XAie_SetupPartitionConfig(devInst, 0, 1, 1)
-XAie_CfgInitialize(devInst, configPtr)
-# XAie_ErrorHandlingInit(devInst)
+col = 0
 
 
-def test_transaction():
-    reset_written_addresses()
-
-    XAie_StartTransaction(devInst, XAIE_TRANSACTION_DISABLE_AUTO_FLUSH)
-
-    XAie_UpdateNpiAddr(devInst, 0)
-
-    col = 0
+def test_cdo_gen():
     tile_0_0 = XAie_LocType(0, col)
     tile_0_1 = XAie_LocType(1, col)
     tile_0_2 = XAie_LocType(2, col)
 
+    configPtr = XAie_Config(
+        XAIE_DEV_GEN_AIEML,
+        XAIE_BASE_ADDR,
+        XAIE_COL_SHIFT,
+        XAIE_ROW_SHIFT,
+        6,
+        5,
+        XAIE_SHIM_ROW,
+        XAIE_MEM_TILE_ROW_START,
+        1,
+        (XAIE_MEM_TILE_ROW_START + 1),
+        (6 - 1 - 1),
+        XAie_PartitionProp(),
+        XAie_BackendType.XAIE_IO_BACKEND_CDO,
+    )
+
+    devInst = XAie_DevInst()
+
+    XAie_SetupPartitionConfig(devInst, 0, 1, 1)
+    XAie_CfgInitialize(devInst, configPtr)
+    XAie_UpdateNpiAddr(devInst, 0)
+
+    EnAXIdebug()
+    setEndianness(Little_Endian)
+    startCDOFileStream(str(Path(__file__).parent.absolute() / "pi_cdo.bin"))
+    FileHeader()
+
+    XAie_ErrorHandlingInit(devInst)
     XAie_LoadElf(
         devInst, tile_0_2, str(Path(__file__).parent.absolute() / "pi.elf"), False
     )
@@ -114,10 +126,5 @@ def test_transaction():
     XAie_EnableAieToShimDmaStrmPort(devInst, tile_0_0, 2)
     XAie_CoreEnable(devInst, tile_0_2)
 
-    txn_inst = XAie_ExportTransactionInstance(devInst)
-    if platform.system() != "Windows":
-        _XAie_Txn_Submit(devInst, txn_inst)
-
-        for addr, data in get_written_addresses().items():
-            c, r, offset = get_addr_tile(addr)
-            print(c, r, f"{offset=:08x}", f"{data=:08x}")
+    configureHeader()
+    endCurrentCDOFileStream()

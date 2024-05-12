@@ -124,24 +124,12 @@ class CMakeBuild(build_ext):
         )
 
         sys.path.append(str(HERE))
-        from scripts import gen_xaie_ctypes
-        from scripts import gen_cdo
+        from util import gen_xaie_ctypes
 
         gen_xaie_ctypes.generate(
             build_temp / "include",
             extdir / PACKAGE_NAME / "__init__.py",
             HERE / "include",
-        )
-
-        if platform.system() in {"Darwin", "Linux"}:
-            shlib_ext = "so"
-        elif platform.system() == "Windows":
-            shlib_ext = "pyd"
-        else:
-            raise NotImplementedError(f"unknown platform {platform.system()}")
-
-        gen_cdo.build_ffi(
-            str(build_temp), str(extdir / PACKAGE_NAME / f"_cdo.{shlib_ext}")
         )
 
 

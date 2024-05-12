@@ -44,7 +44,6 @@ class _WrapperPrinter(WrapperPrinter):
 
         # before everything else
         self.file.write("from .typed_ctypes_enum import *\n")
-        self.file.write("from .cdo import *\n")
 
         self.print_preamble()
         self.file.write("\n")

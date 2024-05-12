@@ -16,6 +16,9 @@ before-build = [
     "pip install -r requirements-dev.txt",
     "yum install -y epel-release && yum install -y ninja-build cmake openssl openssl-devel boost-devel protobuf-devel libdrm-devel ocl-icd-devel systemtap-sdt-devel rapidjson ncurses-devel zlib-static libuuid-devel"
 ]
+repair-wheel-command = [
+    "auditwheel repair -w {dest_dir} {wheel} --exclude libxrt_coreutil.so"
+]
 
 [tool.cibuildwheel.macos]
 before-build = [
@@ -29,5 +32,9 @@ skip = ["*-win32"]
 before-build = [
     "rm -rf {project}/build",
     "rm -rf *egg*",
+    "pip install delvewheel",
     "pip install -r requirements-dev.txt",
+]
+repair-wheel-command = [
+    "delvewheel repair -v -w {dest_dir} {wheel} --no-dll xrt_coreutil.dll"
 ]

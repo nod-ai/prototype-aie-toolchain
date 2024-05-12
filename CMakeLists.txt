@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.15)
 project(xaiepy)
 set(CMAKE_CXX_STANDARD 17)
 
-include(collect)
-
 if(POLICY CMP0144)
   # respect all caps <PACKAGENAME>_ROOT environment variable to search for
   # package stuff
@@ -14,7 +12,13 @@ if(POLICY CMP0148)
   cmake_policy(SET CMP0148 NEW)
 endif()
 
-include(scripts/stuff.cmake)
+option(OUTPUT_DIR "Output directory" ${CMAKE_CURRENT_BINARY_DIR})
+
+include(third_party/aie-rt/fal/cmake/collect.cmake)
+include(util/helpers.cmake)
+set(BOOTGEN_SOURCE_DIR ${PROJECT_SOURCE_DIR}/third_party/bootgen)
+include(util/bootgen.cmake)
+
 configure_python_dev_packages()
 
 set(AIERT_SRC_DIR ${PROJECT_SOURCE_DIR}/third_party/aie-rt/driver/src)
@@ -33,22 +37,11 @@ list(TRANSFORM AIERT_SRCS PREPEND ${AIERT_SRC_DIR}/)
 get_target_property(AIERT_INCLUDE_DIRECTORIES aienginev2 INCLUDE_DIRECTORIES)
 
 add_library(xaie SHARED ${AIERT_SRCS})
-set_target_properties(xaie PROPERTIES LINKER_LANGUAGE C)
 target_compile_definitions(xaie PUBLIC ${XAIE_DEBUG} __AIECDO__)
 target_include_directories(xaie PUBLIC ${AIERT_INCLUDE_DIRECTORIES})
 target_include_directories(xaie PUBLIC SYSTEM ${PROJECT_SOURCE_DIR}/include)
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  target_link_options(
-    xaie
-    PUBLIC
-    -Wl,-U,_cdo_BlockSet32
-    -Wl,-U,_cdo_BlockWrite32
-    -Wl,-U,_cdo_MaskPoll
-    -Wl,-U,_cdo_MaskWrite32
-    -Wl,-U,_cdo_Write32)
-endif()
-
-option(OUTPUT_DIR "Output directory" ${CMAKE_CURRENT_BINARY_DIR})
+set_target_properties(cdo_driver PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(xaie PRIVATE cdo_driver)
 
 set_target_properties(
   xaie
@@ -58,35 +51,7 @@ set_target_properties(
 
 option(BUILD_PYXRT "Build XRT" ON)
 if(BUILD_PYXRT)
-  find_package(Boost REQUIRED)
-  include_directories(${Boost_INCLUDE_DIRS})
-
-  # pyxrt and xrt in general do a ridiculous dance with drivers
-  # https://github.com/Xilinx/XRT/blob/edcae12640ce96ec597c4c0cc1b2a850cfcc5c8b/src/runtime_src/core/common/module_loader.cpp#L201-L205
-  set(CMAKE_SKIP_BUILD_RPATH ON)
-  set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
-
-  if(WIN32)
-    file(
-      READ
-      ${PROJECT_SOURCE_DIR}/third_party/XRT/src/runtime_src/core/common/memalign.h
-      FILE_CONTENTS)
-    string(
-      REPLACE
-        "defined(_WINDOWS)"
-        "defined(_WINDOWS) || defined(_WIN32) || defined(WIN32) || defined(__CYGWIN__) || defined(__MINGW32__)"
-        FILE_CONTENTS
-        "${FILE_CONTENTS}")
-    file(
-      WRITE
-      ${PROJECT_SOURCE_DIR}/third_party/XRT/src/runtime_src/core/common/memalign.h
-      "${FILE_CONTENTS}")
-  endif()
-  add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/XRT/src)
-  set_target_properties(
-    pyxrt
-    PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR}
-               ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR}
-               RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})
-  add_dependencies(xaie pyxrt)
+  set(XRT_SOURCE_DIR ${PROJECT_SOURCE_DIR}/third_party/XRT)
+  include(util/pyxrt.cmake)
+  add_dependencies(xaie pyxrt xclbinutil)
 endif()

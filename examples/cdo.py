@@ -2,7 +2,15 @@ import logging
 import platform
 from pathlib import Path
 
-from xaiepy.pyxrt import ert_cmd_state
+from xaiepy.cdo import (
+    startCDOFileStream,
+    FileHeader,
+    configureHeader,
+    endCurrentCDOFileStream,
+    EnAXIdebug,
+    setEndianness,
+    Little_Endian,
+)
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -36,8 +44,6 @@ from xaiepy import (
     StrmSwPortType,
     XAie_EnableAieToShimDmaStrmPort,
     XAie_DmaDesc,
-    reset_written_addresses,
-    get_write32s,
     XAie_ErrorHandlingInit,
 )
 
@@ -55,7 +61,6 @@ col = 0
 tile_0_0 = XAie_LocType(0, col)
 tile_0_1 = XAie_LocType(1, col)
 tile_0_2 = XAie_LocType(2, col)
-reset_written_addresses()
 
 configPtr = XAie_Config(
     XAIE_DEV_GEN_AIEML,
@@ -77,8 +82,13 @@ devInst = XAie_DevInst()
 
 XAie_SetupPartitionConfig(devInst, 0, 1, 1)
 XAie_CfgInitialize(devInst, configPtr)
-
 XAie_UpdateNpiAddr(devInst, 0)
+
+EnAXIdebug()
+setEndianness(Little_Endian)
+startCDOFileStream(str(Path(__file__).parent.absolute() / "pi_cdo.bin"))
+FileHeader()
+
 XAie_ErrorHandlingInit(devInst)
 XAie_LoadElf(devInst, tile_0_2, str(Path(__file__).parent.absolute() / "pi.elf"), False)
 
@@ -111,7 +121,10 @@ XAie_StrmConnCctEnable(
 XAie_EnableAieToShimDmaStrmPort(devInst, tile_0_0, 2)
 XAie_CoreEnable(devInst, tile_0_2)
 
-instructions = get_write32s()
+configureHeader()
+endCurrentCDOFileStream()
+
+exit()
 
 _PROLOG = [
     0x00000011,
