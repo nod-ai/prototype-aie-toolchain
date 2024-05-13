@@ -43,9 +43,19 @@ target_include_directories(xaie PUBLIC SYSTEM ${PROJECT_SOURCE_DIR}/include)
 set_target_properties(xaie PROPERTIES LINKER_LANGUAGE C
                                       POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(xaie PUBLIC cdo_driver)
-
 set_target_properties(
   xaie
+  PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR}
+             ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR}
+             RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})
+
+pybind11_add_module(_bootgen xaiepy/bootgen.cpp)
+target_include_directories(_bootgen PRIVATE ${BOOTGEN_SOURCE_DIR})
+target_link_libraries(_bootgen PRIVATE bootgen-lib)
+set_target_properties(_bootgen PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_dependencies(xaie _bootgen)
+set_target_properties(
+  _bootgen
   PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR}
              ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR}
              RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})

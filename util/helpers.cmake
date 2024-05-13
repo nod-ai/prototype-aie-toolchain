@@ -43,25 +43,6 @@ function(print_target_properties target)
   endforeach()
 endfunction()
 
-macro(configure_python_dev_packages)
-  # apparently alma 8 doesn't have the full development lib???
-  set(_python_development_component Development.Module)
-
-  find_package(
-    Python3 ${PY_VERSION}
-    COMPONENTS Interpreter ${_python_development_component}
-    REQUIRED)
-  unset(_python_development_component)
-  message(STATUS "Found python include dirs: ${Python3_INCLUDE_DIRS}")
-  message(STATUS "Found python libraries: ${Python3_LIBRARIES}")
-  detect_pybind11_install()
-  find_package(pybind11 CONFIG REQUIRED)
-  message(STATUS "Found pybind11 v${pybind11_VERSION}: ${pybind11_INCLUDE_DIR}")
-  message(STATUS "Python prefix = '${PYTHON_MODULE_PREFIX}', "
-                 "suffix = '${PYTHON_MODULE_SUFFIX}', "
-                 "extension = '${PYTHON_MODULE_EXTENSION}")
-endmacro()
-
 # Detects a pybind11 package installed in the current python environment and
 # sets variables to allow it to be found. This allows pybind11 to be installed
 # via pip, which typically yields a much more recent version than the OS
@@ -93,3 +74,23 @@ function(detect_pybind11_install)
         PARENT_SCOPE)
   endif()
 endfunction()
+
+macro(configure_python_dev_packages)
+  # apparently alma 8 doesn't have the full development lib???
+  set(_python_development_component Development.Module)
+
+  find_package(
+          Python3 ${PY_VERSION}
+          COMPONENTS Interpreter ${_python_development_component}
+          REQUIRED)
+  unset(_python_development_component)
+  message(STATUS "Found python include dirs: ${Python3_INCLUDE_DIRS}")
+  message(STATUS "Found python libraries: ${Python3_LIBRARIES}")
+  detect_pybind11_install()
+  find_package(pybind11 CONFIG REQUIRED)
+  message(STATUS "Found pybind11 v${pybind11_VERSION}: ${pybind11_INCLUDE_DIR}")
+  message(STATUS "Python prefix = '${PYTHON_MODULE_PREFIX}', "
+          "suffix = '${PYTHON_MODULE_SUFFIX}', "
+          "extension = '${PYTHON_MODULE_EXTENSION}")
+endmacro()
+

@@ -30,15 +30,16 @@ add_library(bootgen-lib STATIC ${BOOTGEN_SOURCES})
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
   target_compile_definitions(bootgen-lib PRIVATE YY_NO_UNISTD_H)
 endif()
+set_target_properties(bootgen-lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(bootgen-lib PRIVATE ${BOOTGEN_SOURCE_DIR}
                                                ${OPENSSL_INCLUDE_DIR})
+target_compile_definitions(bootgen-lib PRIVATE OPENSSL_USE_APPLINK)
+target_link_libraries(bootgen-lib PRIVATE OpenSSL::SSL OpenSSL::applink)
 
 add_executable(bootgen ${BOOTGEN_SOURCE_DIR}/main.cpp)
 target_include_directories(
   bootgen PUBLIC ${BOOTGEN_SOURCE_DIR} ${OPENSSL_INCLUDE_DIR}
                  ${CMAKE_CURRENT_BINARY_DIR}/include)
-target_compile_definitions(bootgen PRIVATE OPENSSL_USE_APPLINK)
-target_link_libraries(bootgen PRIVATE bootgen-lib OpenSSL::SSL OpenSSL::applink)
 
 file(READ ${BOOTGEN_SOURCE_DIR}/cdo-driver/cdo_driver.h FILE_CONTENTS)
 string(REPLACE "void SectionHeader();" "" FILE_CONTENTS "${FILE_CONTENTS}")

@@ -124,6 +124,13 @@ XAie_CoreEnable(devInst, tile_0_2)
 configureHeader()
 endCurrentCDOFileStream()
 
+from xaiepy import bootgen
+
+bootgen.make_design_pdi(
+    "/home/mlevental/dev_projects/xaiepy/examples/design.bif",
+    "/home/mlevental/dev_projects/xaiepy/examples/design.pdi",
+)
+
 exit()
 
 _PROLOG = [
