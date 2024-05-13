@@ -10,12 +10,14 @@ skip = ["*-manylinux_i686", "*-musllinux*"]
 environment-pass = [
     "PIP_NO_BUILD_ISOLATION",
 ]
+before-all = [
+    "REPO_SRC_DIR={project} bash patches/apply_patches.sh",
+    "yum install -y epel-release && yum install -y ninja-build cmake openssl openssl-devel boost-devel protobuf-devel libdrm-devel ocl-icd-devel systemtap-sdt-devel rapidjson ncurses-devel zlib-static libuuid-devel"
+]
 before-build = [
     "rm -rf {project}/build",
     "rm -rf *egg*",
-    "REPO_SRC_DIR={project} bash util/apply_patches.sh",
     "pip install -r requirements-dev.txt",
-    "yum install -y epel-release && yum install -y ninja-build cmake openssl openssl-devel boost-devel protobuf-devel libdrm-devel ocl-icd-devel systemtap-sdt-devel rapidjson ncurses-devel zlib-static libuuid-devel"
 ]
 repair-wheel-command = [
     "auditwheel repair -w {dest_dir} {wheel} --exclude libxrt_coreutil.so"
@@ -23,13 +25,15 @@ repair-wheel-command = [
 
 [tool.cibuildwheel.windows]
 skip = ["*-win32"]
+before-all = [
+    "bash patches/apply_patches.sh",
+]
 before-build = [
     "rm -rf {project}/build",
     "rm -rf *egg*",
-    "bash util/apply_patches.sh",
     "pip install delvewheel",
     "pip install -r requirements-dev.txt",
 ]
 repair-wheel-command = [
-    "delvewheel repair -v -w {dest_dir} {wheel} --no-dll xrt_coreutil.dll"
+#    "delvewheel repair -v --add-path xaiepy -w {dest_dir} {wheel} --no-dll xrt_coreutil.dll"
 ]

@@ -9,8 +9,7 @@ pushd $REPO_SRC_DIR
 PATCHES="\
 bootgen \
 pyxrt \
-aie-rt \
-"
+aie-rt"
 
 if [[ x"${APPLY_PATCHES:-true}" == x"true" ]]; then
   for PATCH in $PATCHES; do
@@ -18,7 +17,7 @@ if [[ x"${APPLY_PATCHES:-true}" == x"true" ]]; then
     git apply --ignore-space-change --ignore-whitespace patches/$PATCH.diff
     ERROR=$?
     if [ $ERROR != 0 ]; then
-      git apply --ignore-space-change --ignore-whitespace --verbose --directory patches/$PATCH.diff -R --check
+      git apply --ignore-space-change --ignore-whitespace --verbose patches/$PATCH.diff -R --check
       ERROR=$?
       if [ $ERROR != 0 ]; then
         exit $ERROR

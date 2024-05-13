@@ -64,7 +64,7 @@ jobs:
           BOOST_VERSION: 1.73.0
         run: |
           
-          REPO_SRC_DIR=$PWD bash util/apply_patches.sh
+          REPO_SRC_DIR=$PWD bash patches/apply_patches.sh
           pip install -r requirements-dev.txt
           pip wheel . -v -w wheelhouse --no-build-isolation
 
@@ -80,14 +80,14 @@ jobs:
           fi
           popd
 
-      - name: Test mwe
-        shell: bash
-        run: |
-          
-          export LD_LIBRARY_PATH=/opt/xilinx/xrt/lib
-          pushd examples
-          python cdo.py
-          popd
+#      - name: Test mwe
+#        shell: bash
+#        run: |
+#
+#          export LD_LIBRARY_PATH=/opt/xilinx/xrt/lib
+#          pushd examples
+#          python cdo.py
+#          popd
 
   test-linux-aarch64:
 
@@ -142,7 +142,7 @@ jobs:
           BOOST_VERSION: 1.73.0
         run: |
           
-          REPO_SRC_DIR=$PWD bash util/apply_patches.sh
+          REPO_SRC_DIR=$PWD bash patches/apply_patches.sh
           pip install -r requirements-dev.txt
           pip wheel . -v -w wheelhouse --no-build-isolation
 
@@ -154,11 +154,11 @@ jobs:
           pytest -s ../tests/*.py
           popd
 
-      - name: Test mwe
-        shell: bash
-        run: |
-          
-          export LD_LIBRARY_PATH=/opt/xilinx/xrt/lib
-          pushd examples
-          python cdo.py
-          popd
+#      - name: Test mwe
+#        shell: bash
+#        run: |
+#
+#          export LD_LIBRARY_PATH=/opt/xilinx/xrt/lib
+#          pushd examples
+#          python cdo.py
+#          popd

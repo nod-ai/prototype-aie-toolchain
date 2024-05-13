@@ -128,7 +128,7 @@ class CMakeBuild(build_ext):
         gen_xaie_ctypes.generate(
             build_temp / "include",
             extdir / PACKAGE_NAME / "__init__.py",
-            HERE / "include",
+            elf_include_dir=HERE / "third_party" / "bootgen",
         )
 
 

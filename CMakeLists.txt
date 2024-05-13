@@ -20,7 +20,6 @@ configure_python_dev_packages()
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system program_options filesystem)
-find_package(RapidJSON REQUIRED)
 
 # ##############################################################################
 # bootgen
@@ -29,16 +28,17 @@ find_package(RapidJSON REQUIRED)
 set(BOOTGEN_SOURCE_DIR ${PROJECT_SOURCE_DIR}/third_party/bootgen)
 file(GLOB BOOTGEN_SOURCES "${BOOTGEN_SOURCE_DIR}/*.c"
      "${BOOTGEN_SOURCE_DIR}/*.cpp")
+list(REMOVE_ITEM BOOTGEN_SOURCES "${BOOTGEN_SOURCE_DIR}/main.cpp")
 
 add_library(bootgen-lib STATIC ${BOOTGEN_SOURCES})
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-  target_compile_definitions(bootgen-lib PRIVATE YY_NO_UNISTD_H)
+  target_compile_definitions(bootgen-lib PUBLIC YY_NO_UNISTD_H)
 endif()
 set_target_properties(bootgen-lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_include_directories(bootgen-lib PRIVATE ${BOOTGEN_SOURCE_DIR}
-                                               ${OPENSSL_INCLUDE_DIR})
-target_compile_definitions(bootgen-lib PRIVATE OPENSSL_USE_APPLINK)
-target_link_libraries(bootgen-lib PRIVATE OpenSSL::SSL OpenSSL::applink)
+target_include_directories(bootgen-lib PUBLIC ${BOOTGEN_SOURCE_DIR}
+                                              ${OPENSSL_INCLUDE_DIR})
+target_compile_definitions(bootgen-lib PUBLIC OPENSSL_USE_APPLINK)
+target_link_libraries(bootgen-lib PUBLIC OpenSSL::SSL OpenSSL::applink)
 
 add_library(cdo_driver STATIC ${BOOTGEN_SOURCE_DIR}/cdo-driver/cdo_driver.c)
 target_include_directories(cdo_driver PUBLIC ${BOOTGEN_SOURCE_DIR}/cdo-driver)
@@ -73,12 +73,13 @@ target_compile_options(aienginev2 PRIVATE -Wall -Wextra -D__AIECDO__)
 target_compile_definitions(aienginev2 PUBLIC ${XAIE_DEBUG})
 get_target_property(AIERT_SRCS aienginev2 SOURCES)
 list(TRANSFORM AIERT_SRCS PREPEND ${AIERT_SRC_DIR}/)
+# elf.h
+target_include_directories(aienginev2 PUBLIC SYSTEM ${BOOTGEN_SOURCE_DIR})
 get_target_property(AIERT_INCLUDE_DIRECTORIES aienginev2 INCLUDE_DIRECTORIES)
 
 add_library(xaie SHARED ${AIERT_SRCS})
 target_compile_definitions(xaie PUBLIC ${XAIE_DEBUG} __AIECDO__)
 target_include_directories(xaie PUBLIC ${AIERT_INCLUDE_DIRECTORIES})
-target_include_directories(xaie PUBLIC SYSTEM ${PROJECT_SOURCE_DIR}/include)
 set_target_properties(xaie PROPERTIES LINKER_LANGUAGE C
                                       POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(xaie PUBLIC cdo_driver)
@@ -123,15 +124,17 @@ file(
   "${XCLBINUTIL_SOURCE_DIR}/XclBinSignature.cxx"
   "${XCLBINUTIL_SOURCE_DIR}/XclBinUtilities.cxx")
 
-# shared not static because static will let linker trim SectionMemTopology initializers...
+# shared not static because static will let linker trim SectionMemTopology
+# initializers...
 add_library(xclbinutil-lib SHARED ${XCLBINUTIL_SRCS})
 set_target_properties(xclbinutil-lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 if(NOT WIN32)
-  target_link_libraries(xclbinutil-lib PRIVATE crypto)
+  find_package(RapidJSON REQUIRED)
+  target_link_libraries(xclbinutil-lib PUBLIC crypto)
   target_compile_definitions(xclbinutil-lib
-                             PRIVATE ENABLE_JSON_SCHEMA_VALIDATION)
-  target_link_libraries(xclbinutil-lib PRIVATE transformcdo)
+                             PUBLIC ENABLE_JSON_SCHEMA_VALIDATION)
+  target_link_libraries(xclbinutil-lib PUBLIC transformcdo)
 endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -141,11 +144,12 @@ set_target_properties(
   xclbinutil-lib
   PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR}
              ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR}
-             RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})
+             RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR}
+             MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 
 pybind11_add_module(_xclbinutil xaiepy/xclbinutil.cpp)
 target_include_directories(_xclbinutil PRIVATE ${XCLBINUTIL_SOURCE_DIR})
-target_link_libraries(_xclbinutil PUBLIC xclbinutil-lib ${Boost_LIBRARIES})
+target_link_libraries(_xclbinutil PUBLIC xclbinutil-lib)
 set_target_properties(_xclbinutil PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(
   _xclbinutil

@@ -8,6 +8,10 @@ on:
   pull_request:
     types: [assigned, opened, synchronize, reopened]
 
+concurrency:
+  group: test-${{ github.event.number || github.sha }}
+  cancel-in-progress: true
+
 jobs:
 
   build:

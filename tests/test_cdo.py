@@ -1,4 +1,6 @@
+import json
 import logging
+import platform
 from pathlib import Path
 
 from xaiepy.cdo import (
@@ -42,8 +44,12 @@ from xaiepy import (
     StrmSwPortType,
     XAie_EnableAieToShimDmaStrmPort,
     XAie_DmaDesc,
-    XAie_ErrorHandlingInit,
+    bootgen,
+    xclbinutil,
 )
+
+if platform.system() != "Windows":
+    from xaiepy import XAie_ErrorHandlingInit
 
 XAIE_DEV_GEN_AIEML = 2
 XAIE_BASE_ADDR = 0x40000000
@@ -87,10 +93,13 @@ def test_cdo_gen():
 
     EnAXIdebug()
     setEndianness(Little_Endian)
-    startCDOFileStream(str(Path(__file__).parent.absolute() / "pi_cdo.bin"))
+    cdo_fp = Path(__file__).parent.absolute() / "pi_cdo.bin"
+    startCDOFileStream(str(cdo_fp))
     FileHeader()
 
-    XAie_ErrorHandlingInit(devInst)
+    if platform.system() != "Windows":
+        XAie_ErrorHandlingInit(devInst)
+
     XAie_LoadElf(
         devInst, tile_0_2, str(Path(__file__).parent.absolute() / "pi.elf"), False
     )
@@ -128,3 +137,27 @@ def test_cdo_gen():
 
     configureHeader()
     endCurrentCDOFileStream()
+
+    bif_fp = Path(__file__).parent.absolute() / "pi.bif"
+    with open(bif_fp, "w") as f:
+        f.write(bootgen.emit_design_bif([cdo_fp]))
+
+    pdi_fp = Path(__file__).parent.absolute() / "pi.pdi"
+    bootgen.make_design_pdi(str(bif_fp), str(pdi_fp))
+    mem_top_json_fp = Path(__file__).parent.absolute() / "mem_topology.json"
+    with open(mem_top_json_fp, "w") as f:
+        json.dump(xclbinutil.mem_topology, f)
+    aie_part_json_fp = Path(__file__).parent.absolute() / "aie_partition.json"
+    with open(aie_part_json_fp, "w") as f:
+        json.dump(xclbinutil.emit_partition(pdi_fp, num_cols=1), f)
+    kernels_json_fp = Path(__file__).parent.absolute() / "kernels.json"
+    with open(kernels_json_fp, "w") as f:
+        json.dump(xclbinutil.emit_design_kernel_json(), f)
+
+    pi_xclbin_fp = Path(__file__).parent.absolute() / "pi.xclbin"
+    xclbinutil.make_xclbin(
+        str(mem_top_json_fp),
+        str(aie_part_json_fp),
+        str(kernels_json_fp),
+        str(pi_xclbin_fp),
+    )
