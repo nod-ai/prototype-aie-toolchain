@@ -1,6 +1,21 @@
+import json
 import logging
-import platform
 from pathlib import Path
+
+import numpy as np
+
+from xaiepy import bootgen, xclbinutil
+
+try:
+    from xaiepy import pyxrt
+except ImportError as e:
+    assert (
+        e.args[0]
+        == "libxrt_coreutil.so: cannot open shared object file: No such file or directory"
+    )
+    raise ImportError(
+        "Can't find libxrt_coreutil.so; you probably need to set LD_LIBRARY_PATH=/opt/xilinx/xrt/lib"
+    )
 
 from xaiepy.cdo import (
     startCDOFileStream,
@@ -11,13 +26,13 @@ from xaiepy.cdo import (
     setEndianness,
     Little_Endian,
 )
+from xaiepy.pyxrt import ert_cmd_state
 
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(message)s",
     datefmt="%H:%M:%S",
 )
-
 
 from xaiepy import (
     XAie_Config,
@@ -86,7 +101,8 @@ XAie_UpdateNpiAddr(devInst, 0)
 
 EnAXIdebug()
 setEndianness(Little_Endian)
-startCDOFileStream(str(Path(__file__).parent.absolute() / "pi_cdo.bin"))
+cdo_fp = Path(__file__).parent.absolute() / "pi_cdo.bin"
+startCDOFileStream(str(cdo_fp))
 FileHeader()
 
 XAie_ErrorHandlingInit(devInst)
@@ -124,14 +140,26 @@ XAie_CoreEnable(devInst, tile_0_2)
 configureHeader()
 endCurrentCDOFileStream()
 
-from xaiepy import bootgen
+bif_fp = Path(__file__).parent.absolute() / "pi.bif"
+with open(bif_fp, "w") as f:
+    f.write(bootgen.emit_design_bif([cdo_fp]))
 
-bootgen.make_design_pdi(
-    "/home/mlevental/dev_projects/xaiepy/examples/design.bif",
-    "/home/mlevental/dev_projects/xaiepy/examples/design.pdi",
+pdi_fp = Path(__file__).parent.absolute() / "pi.pdi"
+bootgen.make_design_pdi(str(bif_fp), str(pdi_fp))
+mem_top_json_fp = Path(__file__).parent.absolute() / "mem_topology.json"
+with open(mem_top_json_fp, "w") as f:
+    json.dump(xclbinutil.mem_topology, f)
+aie_part_json_fp = Path(__file__).parent.absolute() / "aie_partition.json"
+with open(aie_part_json_fp, "w") as f:
+    json.dump(xclbinutil.emit_partition(pdi_fp, num_cols=1), f)
+kernels_json_fp = Path(__file__).parent.absolute() / "kernels.json"
+with open(kernels_json_fp, "w") as f:
+    json.dump(xclbinutil.emit_design_kernel_json(), f)
+
+pi_xclbin_fp = Path(__file__).parent.absolute() / "pi.xclbin"
+xclbinutil.make_xclbin(
+    str(mem_top_json_fp), str(aie_part_json_fp), str(kernels_json_fp), str(pi_xclbin_fp)
 )
-
-exit()
 
 _PROLOG = [
     0x00000011,
@@ -171,10 +199,7 @@ shim_instr_v = [
     0x00010100,
 ]
 
-instr_v = instructions + _PROLOG + shim_instr_v
-
-import numpy as np
-from xaiepy import pyxrt
+instr_v = _PROLOG + shim_instr_v
 
 
 def init_xrt_load_kernel(xclbin: Path, kernel_name):
@@ -187,10 +212,7 @@ def init_xrt_load_kernel(xclbin: Path, kernel_name):
     return device, kernel
 
 
-device, kernel = init_xrt_load_kernel(
-    Path(__file__).parent.absolute() / "nopi.xclbin",
-    "MLIR_AIE",
-)
+device, kernel = init_xrt_load_kernel(pi_xclbin_fp, "MLIR_AIE")
 
 instr_v = np.array(instr_v, dtype=np.uint32)
 

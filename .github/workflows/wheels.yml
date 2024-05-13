@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    types: [assigned, opened, synchronize, reopened]
 
 jobs:
 
@@ -23,12 +25,6 @@ jobs:
           - OS: windows-2019
             ARCH: AMD64
 
-          - OS: macos-12
-            ARCH: x86_64
-
-          - OS: macos-12
-            ARCH: arm64
-
     defaults:
       run:
         shell: bash
@@ -40,7 +36,7 @@ jobs:
         with:
           submodules: true
 
-      - name: Get ELFIO
+      - name: Get recursive submodules
         run: |
           
           git submodule update --init --recursive
@@ -90,7 +86,7 @@ jobs:
         with:
           submodules: true
 
-      - name: Get ELFIO
+      - name: Get recursive submodules
         run: |
           
           git submodule update --init --recursive

@@ -9,15 +9,15 @@
 using namespace pybind11::literals;
 
 PYBIND11_MODULE(_bootgen, m) {
-    m.def("make_design_pdi", [](std::string bifFileName, std::string outputFileName, bool debug) {
+    m.def("make_design_pdi", [](std::string bifFilePath, std::string outputFilePath, bool debug) {
         Options options;
         if (debug)
             options.SetLogLevel(LogLevel::TRACE);
         options.SetArchType(Arch::VERSAL);
-        options.SetBifFilename(bifFileName);
+        options.SetBifFilename(bifFilePath);
         options.SetOverwrite(true);
-        options.InsertOutputFileNames(outputFileName);
-        BIF_File bif(bifFileName);
+        options.InsertOutputFileNames(outputFilePath);
+        BIF_File bif(bifFilePath);
         bif.Process(options);
-    }, "bif_filename"_a, "output_filename"_a, "debug"_a = false);
+    }, "bif_fp"_a, "output_fp"_a, "debug"_a = false);
 }

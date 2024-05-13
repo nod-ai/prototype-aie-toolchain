@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        OS: [ ubuntu-20.04, windows-2019, macos-12 ]
+        OS: [ ubuntu-20.04, windows-2019 ]
         PY_VERSION: [ "3.8", "3.9", "3.10", "3.11", "3.12" ]
 
     defaults:
@@ -33,7 +33,7 @@ jobs:
         with:
           submodules: true
 
-      - name: Get ELFIO
+      - name: Get recursive submodules
         run: |
           
           git submodule update --init --recursive
@@ -64,6 +64,7 @@ jobs:
           BOOST_VERSION: 1.73.0
         run: |
           
+          REPO_SRC_DIR=$PWD bash util/apply_patches.sh
           pip install -r requirements-dev.txt
           pip wheel . -v -w wheelhouse --no-build-isolation
 
@@ -83,6 +84,7 @@ jobs:
         shell: bash
         run: |
           
+          export LD_LIBRARY_PATH=/opt/xilinx/xrt/lib
           pushd examples
           python cdo.py
           popd
@@ -102,7 +104,7 @@ jobs:
         with:
           submodules: true
 
-      - name: Get ELFIO
+      - name: Get recursive submodules
         run: |
           
           git submodule update --init --recursive
@@ -140,6 +142,7 @@ jobs:
           BOOST_VERSION: 1.73.0
         run: |
           
+          REPO_SRC_DIR=$PWD bash util/apply_patches.sh
           pip install -r requirements-dev.txt
           pip wheel . -v -w wheelhouse --no-build-isolation
 
@@ -155,6 +158,7 @@ jobs:
         shell: bash
         run: |
           
+          export LD_LIBRARY_PATH=/opt/xilinx/xrt/lib
           pushd examples
           python cdo.py
           popd
