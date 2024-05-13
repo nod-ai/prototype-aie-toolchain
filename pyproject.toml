@@ -26,7 +26,7 @@ skip = ["*-win32"]
 before-build = [
     "rm -rf {project}/build",
     "rm -rf *egg*",
-    "$env:REPO_SRC_DIR={project}; bash util/apply_patches.sh",
+    "$env:REPO_SRC_DIR={project} && bash util/apply_patches.sh",
     "pip install delvewheel",
     "pip install -r requirements-dev.txt",
 ]
