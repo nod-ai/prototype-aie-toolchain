@@ -7,6 +7,9 @@ inputs:
   ARCH:
     description: 'matrix.arch'
     required: true
+  PY_VERSION:
+    description: 'matrix.py_version'
+    required: true
 
 description: ''
 
@@ -14,6 +17,9 @@ outputs:
   BOOST_ROOT:
     description: ''
     value: ${{ steps.install_boost.outputs.BOOST_ROOT }}
+  BOOST_VERSION:
+    description: ''
+    value: 1.74.0
 
 runs:
   using: "composite"
@@ -22,11 +28,15 @@ runs:
       uses: aminya/setup-cpp@v1
       with:
         compiler: gcc
-        vcvarsall: ${{ contains(inputs.OS, 'windows') }}
+        vcvarsall: ${{ contains(inputs.OS, 'windows') }} # evaluate to the string 'true'
         msvc: ${{ contains(inputs.OS, 'windows') }}
         choco: ${{ contains(inputs.OS, 'windows') }}
         cmake: true
         ninja: true
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: ${{ inputs.PY_VERSION }}
 
     - uses: makslevental/mlir-wheels/actions/setup_ccache@d77bf5dc69c46a8c2738b44528749768888eb361
       id: setup_ccache
@@ -36,8 +46,39 @@ runs:
         WORKSPACE_ROOT: ${{ github.workspace }}
 
     - name: Install boost for XRT
-      if: contains(inputs.OS, 'windows') || contains(inputs.OS, 'ubuntu')
       uses: MarkusJx/install-boost@v2.4.5
       id: install_boost
       with:
-        boost_version: 1.73.0
+        boost_version: 1.74.0
+
+    - name: Build and install system deps
+      shell: bash
+      run: |
+        
+        if [ ${{ inputs.OS }} == 'windows-2019' ]; then
+          choco install -y pkgconfiglite protoc 
+        else
+          sudo apt install -y libdrm-dev ocl-icd-opencl-dev rapidjson-dev libprotobuf-dev systemtap-sdt-dev uuid-dev python3-dev
+        fi
+
+    - name: Remove path limit and export VCTOOLSVERSION
+      if: contains(inputs.OS, 'windows')
+      shell: pwsh
+      run: |
+        
+        pwsh.exe .\util\remove_path_limit.ps1
+
+    - name: export VCTOOLSVERSION
+      if: contains(inputs.OS, 'windows')
+      shell: bash
+      run: |
+        
+        VCTOOLSVERSION=${VCTOOLSVERSION:0:4}
+        echo "VCTOOLSVERSION=$VCTOOLSVERSION" >> $GITHUB_ENV
+
+    - name: Install python deps
+      shell: bash
+      run: |
+        
+        ls -lah
+        pip install -r requirements-dev.txt

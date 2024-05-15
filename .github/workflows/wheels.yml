@@ -5,6 +5,12 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    types: [assigned, opened, synchronize, reopened]
+
+concurrency:
+  group: test-${{ github.event.number || github.sha }}
+  cancel-in-progress: true
 
 jobs:
 
@@ -23,12 +29,6 @@ jobs:
           - OS: windows-2019
             ARCH: AMD64
 
-          - OS: macos-12
-            ARCH: x86_64
-
-          - OS: macos-12
-            ARCH: arm64
-
     defaults:
       run:
         shell: bash
@@ -40,34 +40,29 @@ jobs:
         with:
           submodules: true
 
-      - name: Get ELFIO
+      - name: Get Submodules
         run: |
           
           git submodule update --init --recursive
 
       - uses: ./.github/workflows/base
-        if: contains(matrix.OS, 'windows')
         id: base
         with:
           OS: ${{ matrix.OS }}
           ARCH: ${{ matrix.ARCH }}
-
-      - name: Build and install protoc
-        if: contains(matrix.OS, 'windows')
-        run: |
-          
-          choco install -y pkgconfiglite protoc 
+          PY_VERSION: '3.10'
 
       # build
 
       - name: cibuildwheel python bindings
         env:
           BOOST_ROOT: ${{ steps.base.outputs.BOOST_ROOT }}
-          BOOST_VERSION: 1.73.0
+          BOOST_VERSION: ${{ steps.base.outputs.BOOST_VERSION }}
         run: |
 
-          pip install cibuildwheel
-          cibuildwheel --output-dir wheelhouse
+          REPO_SRC_DIR=$PWD bash patches/apply_patches.sh
+          CIBW_BUILD="cp38-* cp39-* cp310-* cp311-* cp312-*" \
+            cibuildwheel --output-dir wheelhouse
 
       # done
 
@@ -85,31 +80,39 @@ jobs:
 
     steps:
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: aarch64
+
       - name: Checkout actions
         uses: actions/checkout@v3
         with:
           submodules: true
 
-      - name: Get ELFIO
+      - name: Get Submodules
         run: |
           
           git submodule update --init --recursive
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+      - uses: ./.github/workflows/base
+        id: base
         with:
-          platforms: aarch64
+          OS: ubuntu-20.04
+          ARCH: aarch64
+          PY_VERSION: '3.10'
 
       # build
 
       - name: cibuildwheel python bindings aarch64
         env:
           BOOST_ROOT: ${{ steps.base.outputs.BOOST_ROOT }}
-          BOOST_VERSION: 1.73.0
+          BOOST_VERSION: ${{ steps.base.outputs.BOOST_VERSION }}
         run: |
           
-          pip install cibuildwheel
-          cibuildwheel --output-dir wheelhouse
+          REPO_SRC_DIR=$PWD bash patches/apply_patches.sh
+          CIBW_BUILD="cp38-* cp39-* cp310-* cp311-* cp312-*" \
+            cibuildwheel --output-dir wheelhouse
 
       # done
 
@@ -121,7 +124,7 @@ jobs:
 
   upload_bindings_wheels:
 
-    if: github.event_name != 'pull_request' && github.ref_name == 'main'
+    if: github.event_name != 'pull_request'
 
     needs: [build, build-linux-aarch64]
 
@@ -144,8 +147,8 @@ jobs:
         with:
           artifacts: "dist/*.whl"
           token: "${{ secrets.GITHUB_TOKEN }}"
-          tag: "latest"
-          name: "latest"
+          tag: ${{ github.ref_name == 'main' && 'release' || 'dev' }}
+          name: ${{ github.ref_name == 'main' && 'release' || 'dev' }}
           removeArtifacts: false
           allowUpdates: true
           replacesArtifacts: true

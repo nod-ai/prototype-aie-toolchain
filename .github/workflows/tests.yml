@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        OS: [ ubuntu-20.04, windows-2019, macos-12 ]
+        OS: [ ubuntu-20.04, windows-2019 ]
         PY_VERSION: [ "3.8", "3.9", "3.10", "3.11", "3.12" ]
 
     defaults:
@@ -28,12 +28,13 @@ jobs:
         shell: bash
 
     steps:
+
       - name: Checkout actions
         uses: actions/checkout@v3
         with:
           submodules: true
 
-      - name: Get ELFIO
+      - name: Get Submodules
         run: |
           
           git submodule update --init --recursive
@@ -43,29 +44,18 @@ jobs:
         with:
           OS: ${{ matrix.OS }}
           ARCH: ${{ matrix.ARCH }}
-
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.PY_VERSION }}
-
-      - name: Build and install protoc
-        if: contains(matrix.OS, 'windows') || contains(matrix.OS, 'ubuntu')
-        run: |
-          
-          if [ ${{ matrix.OS }} == 'windows-2019' ]; then
-            choco install -y pkgconfiglite protoc 
-          else
-            sudo apt install libdrm-dev ocl-icd-opencl-dev rapidjson-dev libprotobuf-dev systemtap-sdt-dev
-          fi
+          PY_VERSION: ${{ matrix.PY_VERSION }}
 
       - name: build wheel
         env:
           BOOST_ROOT: ${{ steps.base.outputs.BOOST_ROOT }}
-          BOOST_VERSION: 1.73.0
+          BOOST_VERSION: ${{ steps.base.outputs.BOOST_VERSION }}
         run: |
           
-          pip install -r requirements-dev.txt
-          pip wheel . -v -w wheelhouse --no-build-isolation
+          REPO_SRC_DIR=$PWD bash patches/apply_patches.sh
+          CIBW_BUILD=${{ matrix.PY_VERSION }}
+          export CIBW_BUILD="cp${CIBW_BUILD//./}-*"
+          cibuildwheel --output-dir wheelhouse
 
       - name: test
         run: |
@@ -82,9 +72,9 @@ jobs:
       - name: Test mwe
         shell: bash
         run: |
-          
+
           pushd examples
-          python e2e.py
+          python cdo.py
           popd
 
   test-linux-aarch64:
@@ -97,51 +87,39 @@ jobs:
         PY_VERSION: [ "3.8", "3.9", "3.10", "3.11", "3.12" ]
 
     steps:
+
       - name: Checkout actions
         uses: actions/checkout@v3
         with:
           submodules: true
 
-      - name: Get ELFIO
+      - name: Get Submodules
         run: |
           
           git submodule update --init --recursive
-
-      - name: Setup Cpp
-        uses: aminya/setup-cpp@v1
-        with:
-          compiler: gcc
-          cmake: true
-          ninja: true
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
         with:
           platforms: aarch64
 
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.PY_VERSION }}
-
       - uses: ./.github/workflows/base
         id: base
         with:
           OS: ${{ matrix.OS }}
           ARCH: ${{ matrix.ARCH }}
-
-      - name: Install XRT deps
-        run: |
-          
-          sudo apt install libdrm-dev ocl-icd-opencl-dev rapidjson-dev libprotobuf-dev systemtap-sdt-dev
+          PY_VERSION: ${{ matrix.PY_VERSION }}
 
       - name: build wheel
         env:
           BOOST_ROOT: ${{ steps.base.outputs.BOOST_ROOT }}
-          BOOST_VERSION: 1.73.0
+          BOOST_VERSION: ${{ steps.base.outputs.BOOST_VERSION }}
         run: |
           
-          pip install -r requirements-dev.txt
-          pip wheel . -v -w wheelhouse --no-build-isolation
+          REPO_SRC_DIR=$PWD bash patches/apply_patches.sh
+          CIBW_BUILD=${{ matrix.PY_VERSION }}
+          export CIBW_BUILD="cp${CIBW_BUILD//./}-*"
+          cibuildwheel --output-dir wheelhouse
 
       - name: test
         run: |
@@ -154,7 +132,8 @@ jobs:
       - name: Test mwe
         shell: bash
         run: |
-          
+
+          export LD_LIBRARY_PATH=/opt/xilinx/xrt/lib
           pushd examples
-          python e2e.py
+          python cdo.py
           popd

@@ -1,209 +1,96 @@
-import logging
-import platform
-import sys
-from collections import OrderedDict
+from _ctypes import Structure
+from ctypes import c_int, c_bool, c_uint
 
-logger = logging.getLogger(__name__)
+from . import uint32_t, _lib, String
 
-if platform.system() != "Windows":
-    from os import RTLD_GLOBAL, RTLD_NOW
+enum_byte_ordering = c_int
 
-    old = sys.getdlopenflags()
-    try:
-        sys.setdlopenflags(RTLD_GLOBAL | RTLD_NOW)
-        from ._cdo import ffi
-    finally:
-        sys.setdlopenflags(old)
-else:
-    from ._cdo import ffi
+Little_Endian = 0
 
-# produced from third_party/aie-rt/driver/src/global/xaiemlgbl_params.h
-_CORE_TILE_MAP = {
-    0x00031150: 0x000FFFFF,  # XAIEMLGBL_CORE_MODULE_CORE_LE
-    0x00031170: 0x00001800,  # XAIEMLGBL_CORE_MODULE_CORE_CR
-    0x00032000: 0x00000002,  # XAIEMLGBL_CORE_MODULE_CORE_CONTROL
-    0x00032004: 0x00000002,  # XAIEMLGBL_CORE_MODULE_CORE_STATUS
-    0x000340F0: 0xFFFFFFFF,  # XAIEMLGBL_CORE_MODULE_TIMER_TRIG_EVENT_LOW_VALUE
-    0x000340F4: 0xFFFFFFFF,  # XAIEMLGBL_CORE_MODULE_TIMER_TRIG_EVENT_HIGH_VALUE
-    0x00034200: 0x00000002,  # XAIEMLGBL_CORE_MODULE_EVENT_STATUS0
-    0x00034500: 0x00000FFF,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_0_ENABLE
-    0x00034504: 0x0000003F,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_PC_ENABLE
-    0x00034508: 0x000001FF,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_CORE_STALL_ENABLE
-    0x0003450C: 0x00001FFF,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_CORE_PROGRAM_FLOW_ENABLE
-    0x00034510: 0x01FFFFFF,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_ERRORS0_ENABLE
-    0x00034514: 0x01FFFFFF,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_ERRORS1_ENABLE
-    0x00034518: 0xFFFFFFFF,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_STREAM_SWITCH_ENABLE
-    0x0003451C: 0x0000FFFF,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_BROADCAST_ENABLE
-    0x00034520: 0x0000000F,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_USER_EVENT_ENABLE
-    0x00036030: 0x0000000F,  # XAIEMLGBL_CORE_MODULE_TILE_CONTROL
-    0x0003FF38: 0x00000007,  # XAIEMLGBL_CORE_MODULE_STREAM_SWITCH_ADAPTIVE_CLOCK_GATE_ABORT_PERIOD
-    0x00060000: 0x00000037,  # XAIEMLGBL_CORE_MODULE_MODULE_CLOCK_CONTROL
-    0x000140F0: 0xFFFFFFFF,  # XAIEMLGBL_CORE_MODULE_TIMER_TRIG_EVENT_LOW_VALUE
-    0x000140F4: 0xFFFFFFFF,  # XAIEMLGBL_CORE_MODULE_TIMER_TRIG_EVENT_HIGH_VALUE
-    0x00014200: 0x00000002,  # XAIEMLGBL_CORE_MODULE_EVENT_STATUS0
-    0x00014500: 0x000003FF,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_0_ENABLE
-    0x00014504: 0x00000003,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_WATCHPOINT_ENABLE
-    0x00014508: 0x00FFFFFF,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_DMA_ENABLE
-    0x0001450C: 0xFFFFFFFF,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_LOCK_ENABLE
-    0x00014510: 0x000000FF,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_MEMORY_CONFLICT_ENABLE
-    0x00014514: 0x0000FFFF,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_ERROR_ENABLE
-    0x00014518: 0x0000FFFF,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_BROADCAST_ENABLE
-    0x0001451C: 0x0000000F,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_USER_EVENT_ENABLE
-    0x0001F100: 0x0000003F,  # XAIEMLGBL_CORE_MODULE_LOCKS_EVENT_SELECTION_0
-    0x0001F104: 0x0000003F,  # XAIEMLGBL_CORE_MODULE_LOCKS_EVENT_SELECTION_1
-    0x0001F108: 0x0000003F,  # XAIEMLGBL_CORE_MODULE_LOCKS_EVENT_SELECTION_2
-    0x0001F10C: 0x0000003F,  # XAIEMLGBL_CORE_MODULE_LOCKS_EVENT_SELECTION_3
-    0x0001F110: 0x0000003F,  # XAIEMLGBL_CORE_MODULE_LOCKS_EVENT_SELECTION_4
-    0x0001F114: 0x0000003F,  # XAIEMLGBL_CORE_MODULE_LOCKS_EVENT_SELECTION_5
-    0x0001F118: 0x0000003F,  # XAIEMLGBL_CORE_MODULE_LOCKS_EVENT_SELECTION_6
-    0x0001F11C: 0x0000003F,  # XAIEMLGBL_CORE_MODULE_LOCKS_EVENT_SELECTION_7
-}
+Big_Endian = Little_Endian + 1
 
-_MEM_TILE_MAP = {
-    0x000940F0: 0xFFFFFFFF,  # XAIEMLGBL_CORE_MODULE_TIMER_TRIG_EVENT_LOW_VALUE
-    0x000940F4: 0xFFFFFFFF,  # XAIEMLGBL_CORE_MODULE_TIMER_TRIG_EVENT_HIGH_VALUE
-    0x00094200: 0x00000002,  # XAIEMLGBL_CORE_MODULE_EVENT_STATUS0
-    0x00094500: 0x00000FFF,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_0_ENABLE
-    0x00094504: 0x0000000F,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_WATCHPOINT_ENABLE
-    0x00094508: 0x00FFFFFF,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_DMA_ENABLE
-    0x0009450C: 0xFFFFFFFF,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_LOCK_ENABLE
-    0x00094510: 0xFFFFFFFF,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_STREAM_SWITCH_ENABLE
-    0x00094514: 0x0000FFFF,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_MEMORY_CONFLICT_ENABLE
-    0x00094518: 0x00000FFF,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_ERROR_ENABLE
-    0x0009451C: 0x0000FFFF,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_BROADCAST_ENABLE
-    0x00094520: 0x00000003,  # XAIEMLGBL_CORE_MODULE_EVENT_GROUP_USER_EVENT_ENABLE
-    0x00096030: 0x0000000F,  # XAIEMLGBL_CORE_MODULE_TILE_CONTROL
-    0x00096048: 0x00000002,  # XAIEMLGBL_CORE_MODULE_MEMORY_CONTROL
-    0x000B0F38: 0x00000007,  # XAIEMLGBL_CORE_MODULE_STREAM_SWITCH_ADAPTIVE_CLOCK_GATE_ABORT_PERIOD
-    0x000C0400: 0x0000003F,  # XAIEMLGBL_CORE_MODULE_LOCKS_EVENT_SELECTION_0
-    0x000C0404: 0x0000003F,  # XAIEMLGBL_CORE_MODULE_LOCKS_EVENT_SELECTION_1
-    0x000C0408: 0x0000003F,  # XAIEMLGBL_CORE_MODULE_LOCKS_EVENT_SELECTION_2
-    0x000C040C: 0x0000003F,  # XAIEMLGBL_CORE_MODULE_LOCKS_EVENT_SELECTION_3
-    0x000C0410: 0x0000003F,  # XAIEMLGBL_CORE_MODULE_LOCKS_EVENT_SELECTION_4
-    0x000C0414: 0x0000003F,  # XAIEMLGBL_CORE_MODULE_LOCKS_EVENT_SELECTION_5
-    0x000C0418: 0x0000003F,  # XAIEMLGBL_CORE_MODULE_LOCKS_EVENT_SELECTION_6
-    0x000C041C: 0x0000003F,  # XAIEMLGBL_CORE_MODULE_LOCKS_EVENT_SELECTION_7
-    0x000FFF00: 0x00000033,  # XAIEMLGBL_CORE_MODULE_MODULE_CLOCK_CONTROL
-}
+enum_CDO_COMMAND = c_int
 
-_NOC_TILE_MAP = {
-    0x00014100: 0x0000003F,  # XAIEMLGBL_NOC_MODULE_LOCKS_EVENT_SELECTION_0
-    0x00014104: 0x0000003F,  # XAIEMLGBL_NOC_MODULE_LOCKS_EVENT_SELECTION_1
-    0x00014108: 0x0000003F,  # XAIEMLGBL_NOC_MODULE_LOCKS_EVENT_SELECTION_2
-    0x0001410C: 0x0000003F,  # XAIEMLGBL_NOC_MODULE_LOCKS_EVENT_SELECTION_3
-    0x00014110: 0x0000003F,  # XAIEMLGBL_NOC_MODULE_LOCKS_EVENT_SELECTION_4
-    0x00014114: 0x0000003F,  # XAIEMLGBL_NOC_MODULE_LOCKS_EVENT_SELECTION_5
-    0x00033000: 0x000000DB,  # XAIEMLGBL_NOC_MODULE_PL_INTERFACE_UPSIZER_CONFIG
-    0x00033004: 0x000006DB,  # XAIEMLGBL_NOC_MODULE_PL_INTERFACE_DOWNSIZER_CONFIG
-    0x000340F0: 0xFFFFFFFF,  # XAIEMLGBL_NOC_MODULE_TIMER_TRIG_EVENT_LOW_VALUE
-    0x000340F4: 0xFFFFFFFF,  # XAIEMLGBL_NOC_MODULE_TIMER_TRIG_EVENT_HIGH_VALUE
-    0x00034200: 0x00000002,  # XAIEMLGBL_NOC_MODULE_EVENT_STATUS0
-    0x00034500: 0x000003FF,  # XAIEMLGBL_NOC_MODULE_EVENT_GROUP_0_ENABLE
-    0x00034504: 0x00FFFFFF,  # XAIEMLGBL_NOC_MODULE_EVENT_GROUP_DMA_ACTIVITY_ENABLE
-    0x00034508: 0x00FFFFFF,  # XAIEMLGBL_NOC_MODULE_EVENT_GROUP_LOCK_ENABLE
-    0x0003450C: 0x00000FFF,  # XAIEMLGBL_NOC_MODULE_EVENT_GROUP_ERRORS_ENABLE
-    0x00034510: 0xFFFFFFFF,  # XAIEMLGBL_NOC_MODULE_EVENT_GROUP_STREAM_SWITCH_ENABLE
-    0x00034514: 0x0000FFFF,  # XAIEMLGBL_NOC_MODULE_EVENT_GROUP_BROADCAST_A_ENABLE
-    0x00036030: 0x0000000F,  # XAIEMLGBL_NOC_MODULE_TILE_CONTROL
-    0x0003FF38: 0x00000007,  # XAIEMLGBL_NOC_MODULE_STREAM_SWITCH_ADAPTIVE_CLOCK_GATE_ABORT_PERIOD
-    0x000FFF00: 0x0000003B,  # XAIEMLGBL_NOC_MODULE_MODULE_CLOCK_CONTROL_0
-    0x000FFF04: 0x00000001,  # XAIEMLGBL_NOC_MODULE_MODULE_CLOCK_CONTROL_1
-}
+CDO_CMD_DMA_WRITE = 0x105
 
-_ADDRESS_ALREADY_WRITTEN_TO = None
+CDO_CMD_MASK_POLL64 = 0x106
 
-XAIE_COL_SHIFT = 25
-XAIE_ROW_SHIFT = 20
+CDO_CMD_MASK_WRITE64 = 0x107
 
-assert XAIE_COL_SHIFT > XAIE_ROW_SHIFT
+CDO_CMD_WRITE64 = 0x108
+
+CDO_CMD_NO_OPERATION = 0x111
 
 
-def is_core_tile(col, row):
-    return row > 1
+class struct_cdoHeader(Structure):
+    pass
 
 
-def is_mem_tile(col, row):
-    return row == 1
+struct_cdoHeader.__slots__ = [
+    "NumWords",
+    "IdentWord",
+    "Version",
+    "CDOLength",
+    "CheckSum",
+]
+struct_cdoHeader._fields_ = [
+    ("NumWords", uint32_t),
+    ("IdentWord", uint32_t),
+    ("Version", uint32_t),
+    ("CDOLength", uint32_t),
+    ("CheckSum", uint32_t),
+]
+
+cdoHeader = struct_cdoHeader
 
 
-noc_columns = {0, 1, 2, 3}
+startCDOFileStream = _lib.get("startCDOFileStream", "cdecl")
+startCDOFileStream.argtypes = [String]
+startCDOFileStream.restype = None
 
 
-def is_shim_noc_tile(col, row):
-    return row == 0 and col in noc_columns
+endCurrentCDOFileStream = _lib.get("endCurrentCDOFileStream", "cdecl")
+endCurrentCDOFileStream.argtypes = []
+endCurrentCDOFileStream.restype = None
 
 
-def get_tile_addr(c, r):
-    return (c & 0xFF) << XAIE_COL_SHIFT | (r & 0xFF) << XAIE_ROW_SHIFT
+FileHeader = _lib.get("FileHeader", "cdecl")
+FileHeader.argtypes = []
+FileHeader.restype = None
 
 
-def get_addr_tile(addr):
-    offset = addr & 0xFFFFF
-    addr >>= XAIE_ROW_SHIFT
-    r = addr & 0xF
-    addr >>= XAIE_COL_SHIFT - XAIE_ROW_SHIFT
-    c = addr & 0xF
-    return c, r, offset
+EnAXIdebug = _lib.get("EnAXIdebug", "cdecl")
+EnAXIdebug.argtypes = []
+EnAXIdebug.restype = None
 
 
-def init_value(Addr):
-    c, r, offset = get_addr_tile(Addr)
-    if is_mem_tile(c, r):
-        return _MEM_TILE_MAP.get(offset, 0)
-    elif is_core_tile(c, r):
-        return _CORE_TILE_MAP.get(offset, 0)
-    elif is_shim_noc_tile(c, r):
-        return _NOC_TILE_MAP.get(offset, 0)
-    else:
-        raise RuntimeError("unknown tile")
+setEndianness = _lib.get("setEndianness", "cdecl")
+setEndianness.argtypes = [c_bool]
+setEndianness.restype = None
 
 
-@ffi.def_extern()
-def cdo_Write32(Addr, Data):
-    _ADDRESS_ALREADY_WRITTEN_TO[Addr] = Data
-    logger.debug(f"Write32 {Addr=:08x} {Data=:08x}")
+configureHeader = _lib.get("configureHeader", "cdecl")
+configureHeader.argtypes = []
+configureHeader.restype = None
 
 
-def Read32(Addr):
-    if Addr not in _ADDRESS_ALREADY_WRITTEN_TO:
-        _ADDRESS_ALREADY_WRITTEN_TO[Addr] = init_value(Addr)
-    Data = _ADDRESS_ALREADY_WRITTEN_TO[Addr]
-    logger.debug(f"Read32 {Addr=:08x} {Data=:08x}")
-    return Data
+getPadBytesForDmaWrCmdAlignment = _lib.get("getPadBytesForDmaWrCmdAlignment", "cdecl")
+getPadBytesForDmaWrCmdAlignment.argtypes = [uint32_t]
+getPadBytesForDmaWrCmdAlignment.restype = c_uint
 
 
-@ffi.def_extern()
-def cdo_BlockWrite32(Addr, pData, size):
-    logger.debug(f"BlockWrite32 {Addr=:08x} {pData=} {size}")
-    data = ffi.unpack(pData, size)
-    for i, v in enumerate(data):
-        cdo_Write32(Addr + i * 4, v)
+insertNoOpCommand = _lib.get("insertNoOpCommand", "cdecl")
+insertNoOpCommand.argtypes = [c_uint]
+insertNoOpCommand.restype = None
 
 
-@ffi.def_extern()
-def cdo_MaskWrite32(Addr, Mask, Data):
-    RegVal = Read32(Addr)
-    logger.debug(f"MaskWrite32 {Addr=:08x} {Mask=:08x} {RegVal=:08x} {Data=:08x}")
-    RegVal &= ~Mask
-    cdo_Write32(Addr, RegVal | Data)
+insertDmaWriteCmdHdr = _lib.get("insertDmaWriteCmdHdr", "cdecl")
+insertDmaWriteCmdHdr.argtypes = [uint32_t]
+insertDmaWriteCmdHdr.restype = None
 
 
-@ffi.def_extern()
-def cdo_MaskPoll(Addr, Mask, Expected_Value, TimeoutInMS):
-    logger.debug(f"MaskPoll {Addr=:08x} {Mask=:08x} {Expected_Value=} {TimeoutInMS}")
-    raise NotImplementedError
+disableDmaCmdAlignment = _lib.get("disableDmaCmdAlignment", "cdecl")
+disableDmaCmdAlignment.argtypes = []
+disableDmaCmdAlignment.restype = None
 
-
-@ffi.def_extern()
-def cdo_BlockSet32(Addr, Data, size):
-    logger.debug(f"BlockSet32 {Addr=:08x} {Data=} {size=}")
-    raise NotImplementedError
-
-
-def get_written_addresses():
-    return dict(_ADDRESS_ALREADY_WRITTEN_TO)
-
-
-def reset_written_addresses():
-    global _ADDRESS_ALREADY_WRITTEN_TO
-    _ADDRESS_ALREADY_WRITTEN_TO = OrderedDict()
+cdoHeader = struct_cdoHeader

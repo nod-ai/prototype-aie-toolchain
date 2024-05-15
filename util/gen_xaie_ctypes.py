@@ -44,7 +44,6 @@ class _WrapperPrinter(WrapperPrinter):
 
         # before everything else
         self.file.write("from .typed_ctypes_enum import *\n")
-        self.file.write("from .cdo import *\n")
 
         self.print_preamble()
         self.file.write("\n")
@@ -247,7 +246,10 @@ class _WrapperPrinter(WrapperPrinter):
         self.file.write("\n")
 
 
-EXCLUDED_HEADERS = {"xaie_interrupt.h"}
+EXCLUDED_HEADERS = set()
+
+if platform.system() == "Windows":
+    EXCLUDED_HEADERS.add("xaie_interrupt.h")
 
 
 def generate(xaie_build_include_dir: Path, output: Path, elf_include_dir: Path):
@@ -281,7 +283,11 @@ def generate(xaie_build_include_dir: Path, output: Path, elf_include_dir: Path):
         cpp_undefines=[],
         debug_level=0,
         embed_preamble=True,
-        exclude_symbols=["XAie_MapIrqIdToCols"],
+        exclude_symbols=[
+            "XAie_MapIrqIdToCols",
+            "XAie_DisableErrorInterrupts",
+            "XAie_BacktrackErrorInterrupts",
+        ],
         header_template=None,
         # blows up file
         include_macros=False,

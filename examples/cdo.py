@@ -1,5 +1,24 @@
+import json
+import logging
 import platform
 from pathlib import Path
+
+from xaiepy import bootgen, xclbinutil
+from xaiepy.cdo import (
+    startCDOFileStream,
+    FileHeader,
+    configureHeader,
+    endCurrentCDOFileStream,
+    EnAXIdebug,
+    setEndianness,
+    Little_Endian,
+)
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(message)s",
+    datefmt="%H:%M:%S",
+)
 
 from xaiepy import (
     XAie_Config,
@@ -26,13 +45,10 @@ from xaiepy import (
     StrmSwPortType,
     XAie_EnableAieToShimDmaStrmPort,
     XAie_DmaDesc,
-    XAie_StartTransaction,
-    XAie_ExportTransactionInstance,
-    _XAie_Txn_Submit,
-    get_written_addresses,
-    get_addr_tile,
-    reset_written_addresses,
 )
+
+if platform.system() != "Windows":
+    from xaiepy import XAie_ErrorHandlingInit
 
 XAIE_DEV_GEN_AIEML = 2
 XAIE_BASE_ADDR = 0x40000000
@@ -44,7 +60,10 @@ XAIE_PARTITION_BASE_ADDR = 0x0
 XAIE_TRANSACTION_DISABLE_AUTO_FLUSH = 0b0
 DDR_AIE_ADDR_OFFSET = 0x80000000
 
-reset_written_addresses()
+col = 0
+tile_0_0 = XAie_LocType(0, col)
+tile_0_1 = XAie_LocType(1, col)
+tile_0_2 = XAie_LocType(2, col)
 
 configPtr = XAie_Config(
     XAIE_DEV_GEN_AIEML,
@@ -66,21 +85,18 @@ devInst = XAie_DevInst()
 
 XAie_SetupPartitionConfig(devInst, 0, 1, 1)
 XAie_CfgInitialize(devInst, configPtr)
-# XAie_ErrorHandlingInit(devInst)
-
-XAie_StartTransaction(devInst, XAIE_TRANSACTION_DISABLE_AUTO_FLUSH)
-
 XAie_UpdateNpiAddr(devInst, 0)
 
-col = 0
-tile_0_0 = XAie_LocType(0, col)
-tile_0_1 = XAie_LocType(1, col)
-tile_0_2 = XAie_LocType(2, col)
+EnAXIdebug()
+setEndianness(Little_Endian)
+cdo_fp = Path(__file__).parent.absolute() / "pi_cdo.bin"
+startCDOFileStream(str(cdo_fp))
+FileHeader()
 
+if platform.system() != "Windows":
+    XAie_ErrorHandlingInit(devInst)
 
-XAie_LoadElf(
-    devInst, tile_0_2, str(Path(__file__).parent.absolute() / "pi.elf"), False
-)
+XAie_LoadElf(devInst, tile_0_2, str(Path(__file__).parent.absolute() / "pi.elf"), False)
 
 XAie_CoreReset(devInst, tile_0_2)
 XAie_CoreUnreset(devInst, tile_0_2)
@@ -111,10 +127,26 @@ XAie_StrmConnCctEnable(
 XAie_EnableAieToShimDmaStrmPort(devInst, tile_0_0, 2)
 XAie_CoreEnable(devInst, tile_0_2)
 
-txn_inst = XAie_ExportTransactionInstance(devInst)
+configureHeader()
+endCurrentCDOFileStream()
 
-if platform.system() != "Windows":
-    _XAie_Txn_Submit(devInst, txn_inst)
-    for addr, data in get_written_addresses().items():
-        c, r, offset = get_addr_tile(addr)
-        print(c, r, f"{offset=:08x}", f"{data=:08x}")
+bif_fp = Path(__file__).parent.absolute() / "pi.bif"
+with open(bif_fp, "w") as f:
+    f.write(bootgen.emit_design_bif([cdo_fp]))
+
+pdi_fp = Path(__file__).parent.absolute() / "pi.pdi"
+bootgen.make_design_pdi(str(bif_fp), str(pdi_fp))
+mem_top_json_fp = Path(__file__).parent.absolute() / "mem_topology.json"
+with open(mem_top_json_fp, "w") as f:
+    json.dump(xclbinutil.mem_topology, f)
+aie_part_json_fp = Path(__file__).parent.absolute() / "aie_partition.json"
+with open(aie_part_json_fp, "w") as f:
+    json.dump(xclbinutil.emit_partition(pdi_fp, num_cols=1), f)
+kernels_json_fp = Path(__file__).parent.absolute() / "kernels.json"
+with open(kernels_json_fp, "w") as f:
+    json.dump(xclbinutil.emit_design_kernel_json(), f)
+
+pi_xclbin_fp = Path(__file__).parent.absolute() / "pi.xclbin"
+xclbinutil.make_xclbin(
+    str(mem_top_json_fp), str(aie_part_json_fp), str(kernels_json_fp), str(pi_xclbin_fp)
+)

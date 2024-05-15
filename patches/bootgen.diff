@@ -1,0 +1,66 @@
+Submodule third_party/bootgen contains modified content
+diff --git a/third_party/bootgen/cdo-alloc.c b/third_party/bootgen/cdo-alloc.c
+index e3a8cb3..d5e6efa 100755
+--- a/third_party/bootgen/cdo-alloc.c
++++ b/third_party/bootgen/cdo-alloc.c
+@@ -18,7 +18,7 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <errno.h>
+-#include <malloc.h>
++//#include <malloc.h>
+ #include <string.h>
+ #include "cdo-alloc.h"
+ 
+diff --git a/third_party/bootgen/cdo-driver/cdo_driver.h b/third_party/bootgen/cdo-driver/cdo_driver.h
+index be282e4..2bef792 100755
+--- a/third_party/bootgen/cdo-driver/cdo_driver.h
++++ b/third_party/bootgen/cdo-driver/cdo_driver.h
+@@ -49,17 +49,23 @@ typedef struct cdoHeader {
+ 
+ } cdoHeader;
+ 
+-void startCDOFileStream(const char* cdoFileName);
+-void endCurrentCDOFileStream();
+-void FileHeader();
+-void EnAXIdebug();
+-void setEndianness(bool endianness);
+-void SectionHeader();
+-void configureHeader();
+-unsigned int getPadBytesForDmaWrCmdAlignment(uint32_t DmaCmdLength);
+-void insertNoOpCommand(unsigned int numPadBytes);
+-void insertDmaWriteCmdHdr(uint32_t DmaCmdLength);
+-void disableDmaCmdAlignment();
++#if defined(__GNUC__)
++#define DLL_PUBLIC __attribute__ ((used))
++#elif defined(_MSC_VER)
++#define DLL_PUBLIC __declspec(dllexport)
++#endif
++
++DLL_PUBLIC void startCDOFileStream(const char* cdoFileName);
++DLL_PUBLIC void endCurrentCDOFileStream();
++DLL_PUBLIC void FileHeader();
++DLL_PUBLIC void EnAXIdebug();
++DLL_PUBLIC void setEndianness(bool endianness);
++//void SectionHeader();
++DLL_PUBLIC void configureHeader();
++DLL_PUBLIC unsigned int getPadBytesForDmaWrCmdAlignment(uint32_t DmaCmdLength);
++DLL_PUBLIC void insertNoOpCommand(unsigned int numPadBytes);
++DLL_PUBLIC void insertDmaWriteCmdHdr(uint32_t DmaCmdLength);
++DLL_PUBLIC void disableDmaCmdAlignment();
+ 
+ 
+ #endif /* _CDO_DRIVER_H_ */
+diff --git a/third_party/bootgen/cdo-npi.c b/third_party/bootgen/cdo-npi.c
+index d357724..c8d0643 100755
+--- a/third_party/bootgen/cdo-npi.c
++++ b/third_party/bootgen/cdo-npi.c
+@@ -18,7 +18,7 @@
+ #include <stdlib.h>
+ #include <stdint.h>
+ #include <errno.h>
+-#include <malloc.h>
++//#include <malloc.h>
+ #include <string.h>
+ #include <assert.h>
+ #include <inttypes.h>

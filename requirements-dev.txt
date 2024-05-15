@@ -3,9 +3,13 @@
 setuptools>=64
 wheel
 ninja
-cmake>=3.28
+# https://gitlab.kitware.com/cmake/cmake/-/issues/25702#note_1485760
+cmake>=3.29
 ctypesgen
 cmake-format
 black
 pytest
 pybind11[global]
+delvewheel; sys_platform == 'win32'
+auditwheel; sys_platform == 'linux'
+cibuildwheel

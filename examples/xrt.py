@@ -4,9 +4,7 @@ from pathlib import Path
 import numpy as np
 
 from xaiepy import pyxrt
-
-os.environ["XILINX_XRT"] = "/opt/xilinx/xrt"
-os.environ["LD_LIBRARY_PATH"] = "/opt/xilinx/xrt/lib"
+from xaiepy.pyxrt import ert_cmd_state
 
 
 def init_xrt_load_kernel(xclbin: Path, kernel_name):
@@ -24,7 +22,8 @@ device, kernel = init_xrt_load_kernel(
     "MLIR_AIE",
 )
 
-instr_v = [
+
+_PROLOG = [
     0x00000011,
     0x01000405,
     0x01000100,
@@ -42,6 +41,9 @@ instr_v = [
     0x00004573,
     0x07BD9630,
     0x000055FF,
+]
+
+shim_instr_v = [
     0x06000100,
     0x00000000,
     0x00000001,
@@ -60,6 +62,7 @@ instr_v = [
 ]
 
 
+instr_v = _PROLOG + shim_instr_v
 instr_v = np.array(instr_v, dtype=np.uint32)
 
 bo_instr = pyxrt.bo(device, len(instr_v) * 4, pyxrt.bo.cacheable, kernel.group_id(0))
@@ -74,7 +77,7 @@ bo_instr.sync(pyxrt.xclBOSyncDirection.XCL_BO_SYNC_BO_TO_DEVICE)
 bo_inout0.sync(pyxrt.xclBOSyncDirection.XCL_BO_SYNC_BO_TO_DEVICE)
 
 h = kernel(bo_instr, len(instr_v), bo_inout0)
-h.wait()
+assert h.wait() == ert_cmd_state.ERT_CMD_STATE_COMPLETED
 bo_inout0.sync(pyxrt.xclBOSyncDirection.XCL_BO_SYNC_BO_FROM_DEVICE)
 entire_buffer = bo_inout0.read(4, 0).view(np.float32)
 print(entire_buffer[0])
