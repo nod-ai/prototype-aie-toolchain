@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from pprint import pprint
 
+from cmake import cmake_executable_path
 from pip._internal.network.session import PipSession
 from pip._internal.req import parse_requirements
 from setuptools import Extension, setup
@@ -69,12 +70,14 @@ class CMakeBuild(build_ext):
             cmake_args += [
                 "-DCMAKE_C_COMPILER=cl",
                 "-DCMAKE_CXX_COMPILER=cl",
-                "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded",
-                "-DCMAKE_C_FLAGS=/MT",
-                "-DCMAKE_CXX_FLAGS=/MT /EHsc",
                 "-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON",
                 "-DCMAKE_SUPPORT_WINDOWS_EXPORT_ALL_SYMBOLS=ON",
             ]
+            if check_env("OPENSSL_ROOT_DIR"):
+                OPENSSL_ROOT_DIR = os.getenv(
+                    "OPENSSL_ROOT_DIR", "C:\\Program Files\\OpenSSL"
+                )
+                cmake_args += [f"-DOPENSSL_ROOT_DIR={OPENSSL_ROOT_DIR}"]
 
         if "CMAKE_ARGS" in os.environ:
             cmake_args += [item for item in os.environ["CMAKE_ARGS"].split(" ") if item]
@@ -111,12 +114,17 @@ class CMakeBuild(build_ext):
         env = os.environ.copy()
         print("ENV", pprint(os.environ), file=sys.stderr)
         print("CMAKE_ARGS", cmake_args, file=sys.stderr)
+        print(f"{cmake_executable_path=}", file=sys.stderr)
 
+        CMAKE_EXE_PATH = cmake_executable_path / "bin" / "cmake"
         subprocess.run(
-            ["cmake", ext.sourcedir, *cmake_args], cwd=build_temp, check=True, env=env
+            [str(CMAKE_EXE_PATH), ext.sourcedir, *cmake_args],
+            cwd=build_temp,
+            check=True,
+            env=env,
         )
         subprocess.run(
-            ["cmake", "--build", ".", "--target", "xaie", *build_args],
+            [CMAKE_EXE_PATH, "--build", ".", "--target", "xaie", *build_args],
             cwd=build_temp,
             check=True,
             env=env,

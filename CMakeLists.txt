@@ -12,14 +12,51 @@ if(POLICY CMP0148)
   cmake_policy(SET CMP0148 NEW)
 endif()
 
-option(OUTPUT_DIR "Output directory" ${CMAKE_CURRENT_BINARY_DIR})
+if(WIN32)
+  # see util/remove_path_limit.ps1
+  set(CMAKE_OBJECT_PATH_MAX 4096)
+endif()
+
+set(OUTPUT_DIR
+    ${CMAKE_CURRENT_BINARY_DIR}
+    CACHE STRING "Output directory")
+
+# ##############################################################################
+# requirements
+# ##############################################################################
+
+if(NOT ${CMAKE_SIZEOF_VOID_P} EQUAL 8)
+  # if you open up the wrong developer shell in windows...
+  message(
+    FATAL_ERROR
+      "Something has gone terribly wrong: CMAKE_SIZEOF_VOID_P=${CMAKE_SIZEOF_VOID_P}"
+  )
+endif()
+# can delete after this is all worked out
+# https://gitlab.kitware.com/cmake/cmake/-/issues/25702
+find_package(OpenSSL)
+if(NOT DEFINED OPENSSL_FOUND OR NOT ${OPENSSL_FOUND})
+  list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/util")
+  find_package(OpenSSL)
+  if(NOT DEFINED USE_OUR_FIND_OPENSSL OR NOT ${USE_OUR_FIND_OPENSSL})
+    message(FATAL_ERROR "Didn't pickup our FindOpenSSL.cmake")
+  endif()
+  if(NOT DEFINED OPENSSL_FOUND OR NOT ${OPENSSL_FOUND})
+    message(FATAL_ERROR "OpenSSL not found")
+  endif()
+endif()
+message(STATUS "OpenSSL include directories:" ${OPENSSL_INCLUDE_DIR})
 
 include(util/helpers.cmake)
-
 configure_python_dev_packages()
-find_package(OpenSSL REQUIRED)
+
 find_package(Threads REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system program_options filesystem)
+message(STATUS "Boost include directories:" ${Boost_INCLUDE_DIRS})
+
+if(NOT WIN32)
+  find_package(RapidJSON REQUIRED)
+endif()
 
 # ##############################################################################
 # bootgen
@@ -34,7 +71,6 @@ add_library(bootgen-lib STATIC ${BOOTGEN_SOURCES})
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
   target_compile_definitions(bootgen-lib PUBLIC YY_NO_UNISTD_H)
 endif()
-set_target_properties(bootgen-lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(bootgen-lib PUBLIC ${BOOTGEN_SOURCE_DIR}
                                               ${OPENSSL_INCLUDE_DIR})
 target_compile_definitions(bootgen-lib PUBLIC OPENSSL_USE_APPLINK)
@@ -42,18 +78,11 @@ target_link_libraries(bootgen-lib PUBLIC OpenSSL::SSL OpenSSL::applink)
 
 add_library(cdo_driver STATIC ${BOOTGEN_SOURCE_DIR}/cdo-driver/cdo_driver.c)
 target_include_directories(cdo_driver PUBLIC ${BOOTGEN_SOURCE_DIR}/cdo-driver)
-set_target_properties(cdo_driver PROPERTIES LINKER_LANGUAGE C
-                                            POSITION_INDEPENDENT_CODE ON)
+set_target_properties(cdo_driver PROPERTIES LINKER_LANGUAGE C)
 
 pybind11_add_module(_bootgen xaiepy/bootgen.cpp)
-target_include_directories(_bootgen PRIVATE ${BOOTGEN_SOURCE_DIR})
-target_link_libraries(_bootgen PRIVATE bootgen-lib)
-set_target_properties(_bootgen PROPERTIES POSITION_INDEPENDENT_CODE ON)
-set_target_properties(
-  _bootgen
-  PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR}
-             ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR}
-             RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})
+target_include_directories(_bootgen PUBLIC ${BOOTGEN_SOURCE_DIR})
+target_link_libraries(_bootgen PUBLIC bootgen-lib)
 
 # ##############################################################################
 # aie-rt
@@ -69,7 +98,6 @@ if(uppercase_CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   set(XAIE_DEBUG "XAIE_DEBUG")
 endif()
 
-target_compile_options(aienginev2 PRIVATE -Wall -Wextra -D__AIECDO__)
 target_compile_definitions(aienginev2 PUBLIC ${XAIE_DEBUG})
 get_target_property(AIERT_SRCS aienginev2 SOURCES)
 list(TRANSFORM AIERT_SRCS PREPEND ${AIERT_SRC_DIR}/)
@@ -80,14 +108,8 @@ get_target_property(AIERT_INCLUDE_DIRECTORIES aienginev2 INCLUDE_DIRECTORIES)
 add_library(xaie SHARED ${AIERT_SRCS})
 target_compile_definitions(xaie PUBLIC ${XAIE_DEBUG} __AIECDO__)
 target_include_directories(xaie PUBLIC ${AIERT_INCLUDE_DIRECTORIES})
-set_target_properties(xaie PROPERTIES LINKER_LANGUAGE C
-                                      POSITION_INDEPENDENT_CODE ON)
+set_target_properties(xaie PROPERTIES LINKER_LANGUAGE C)
 target_link_libraries(xaie PUBLIC cdo_driver)
-set_target_properties(
-  xaie
-  PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR}
-             ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR}
-             RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})
 
 add_dependencies(xaie _bootgen)
 
@@ -127,35 +149,28 @@ file(
 # shared not static because static will let linker trim SectionMemTopology
 # initializers...
 add_library(xclbinutil-lib SHARED ${XCLBINUTIL_SRCS})
-set_target_properties(xclbinutil-lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 if(NOT WIN32)
-  find_package(RapidJSON REQUIRED)
   target_link_libraries(xclbinutil-lib PUBLIC crypto)
   target_compile_definitions(xclbinutil-lib
                              PUBLIC ENABLE_JSON_SCHEMA_VALIDATION)
   target_link_libraries(xclbinutil-lib PUBLIC transformcdo)
+else()
+  target_compile_options(xclbinutil-lib PUBLIC "/EHsc")
+  # if you get
+  # LINK : fatal error LNK1104: cannot open file
+  # 'libboost_filesystem-vc142-mt-gd-x64-1_74.lib'
+#  target_compile_definitions(xclbinutil-lib PUBLIC BOOST_ALL_DYN_LINK)
 endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 target_link_libraries(xclbinutil-lib PUBLIC ${Boost_LIBRARIES} Threads::Threads)
-target_include_directories(xclbinutil-lib PUBLIC ${XRT_BINARY_DIR}/gen)
-set_target_properties(
-  xclbinutil-lib
-  PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR}
-             ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR}
-             RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR}
-             MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+target_include_directories(xclbinutil-lib PUBLIC ${XRT_BINARY_DIR}/gen
+                                                 ${Boost_INCLUDE_DIRS})
 
 pybind11_add_module(_xclbinutil xaiepy/xclbinutil.cpp)
-target_include_directories(_xclbinutil PRIVATE ${XCLBINUTIL_SOURCE_DIR})
+target_include_directories(_xclbinutil PUBLIC ${XCLBINUTIL_SOURCE_DIR})
 target_link_libraries(_xclbinutil PUBLIC xclbinutil-lib)
-set_target_properties(_xclbinutil PROPERTIES POSITION_INDEPENDENT_CODE ON)
-set_target_properties(
-  _xclbinutil
-  PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR}
-             ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR}
-             RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})
 
 add_dependencies(xaie _xclbinutil)
 
@@ -166,12 +181,22 @@ add_dependencies(xaie _xclbinutil)
 set_target_properties(
   pyxrt
   PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR}
-    ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR}
-    RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR}
     # pyxrt and xrt in general do a ridiculous dance with drivers
     # https://github.com/Xilinx/XRT/blob/edcae12640ce96ec597c4c0cc1b2a850cfcc5c8b/src/runtime_src/core/common/module_loader.cpp#L201-L205
     SKIP_BUILD_RPATH ON
     BUILD_WITH_INSTALL_RPATH ON)
 
 add_dependencies(xaie pyxrt)
+
+# ##############################################################################
+# finish
+# ##############################################################################
+
+set_target_properties(_bootgen _xclbinutil bootgen-lib cdo_driver xaie
+                      xclbinutil-lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+set_target_properties(
+  _bootgen _xclbinutil pyxrt xaie xclbinutil-lib
+  PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR}
+             ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR}
+             RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})

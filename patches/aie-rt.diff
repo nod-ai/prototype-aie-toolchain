@@ -1,6 +1,6 @@
 Submodule third_party/aie-rt contains modified content
 diff --git a/third_party/aie-rt/driver/src/CMakeLists.txt b/third_party/aie-rt/driver/src/CMakeLists.txt
-index beacb4a..4dae7b6 100644
+index beacb4a..d279531 100644
 --- a/third_party/aie-rt/driver/src/CMakeLists.txt
 +++ b/third_party/aie-rt/driver/src/CMakeLists.txt
 @@ -3,7 +3,7 @@
@@ -12,3 +12,12 @@ index beacb4a..4dae7b6 100644
  collector_create (PROJECT_LIB_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}")
  collector_create (PROJECT_LIB_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}")
  include_directories(${CMAKE_BINARY_DIR}/include/xaiengine)
+@@ -170,4 +170,7 @@ file(COPY ${_headers} DESTINATION ${CMAKE_BINARY_DIR}/include/xaiengine)
+ add_library(aienginev2 STATIC ${_sources})
+ 
+ set_target_properties(aienginev2 PROPERTIES LINKER_LANGUAGE C)
+-target_compile_options(aienginev2 PRIVATE -Wall -Wextra -D__AIEBAREMETAL__)
++target_compile_options(aienginev2 PRIVATE -D__AIECDO__)
++if(CMAKE_COMPILER_IS_GNUCXX)
++    target_compile_options(aienginev2 PRIVATE -Wall -Wextra)
++endif(CMAKE_COMPILER_IS_GNUCXX)
