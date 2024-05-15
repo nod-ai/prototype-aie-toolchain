@@ -8,6 +8,7 @@ from textwrap import dedent
 
 from ctypesgen import parser as core_parser, processor
 from ctypesgen.ctypedescs import CtypesStruct, CtypesBitfield, CtypesEnum
+from ctypesgen.descriptions import StructDescription
 from ctypesgen.expressions import ConstantExpressionNode, ExpressionNode
 from ctypesgen.printer_python import WrapperPrinter
 from ctypesgen.printer_python.printer import LIBRARYLOADER_PATH
@@ -39,11 +40,15 @@ class _WrapperPrinter(WrapperPrinter):
         if not self.options.embed_preamble and outpath:
             self._copy_preamble_loader_files(outpath)
 
+        # self.file.write("from __future__ import annotations\n")
         self.print_header()
         self.file.write("\n")
 
         # before everything else
         self.file.write("from .typed_ctypes_enum import *\n")
+        self.file.write(
+            "from einspect.structs.deco import Struct as EinStruct, Union as EinUnion\n"
+        )
 
         self.print_preamble()
         self.file.write("\n")
@@ -65,6 +70,9 @@ class _WrapperPrinter(WrapperPrinter):
             "constant": self.print_constant,
             "undef": self.print_undef,
         }
+
+        for kind, desc in data.output_order:
+            pass
 
         for kind, desc in data.output_order:
             if desc.included:
@@ -160,6 +168,23 @@ class _WrapperPrinter(WrapperPrinter):
             self.file.write(f"    {enum_variant} = {node.py_string(False)}{nl}")
             self.seen_enum_variants.add(enum_variant)
 
+    def print_struct(self, struct):
+        self.srcinfo(struct.src)
+        base = {"union": "EinUnion", "struct": "EinStruct"}[struct.variety]
+        self.file.write(
+            "class %s_%s(%s):\n" "    pass\n" % (struct.variety, struct.tag, base)
+        )
+        if struct.members is None:
+            return
+        for name, ctype in struct.members:
+            if isinstance(ctype, CtypesBitfield):
+                raise NotImplementedError
+            else:
+                ct = ctype.py_string()
+                if isinstance(ctype, CtypesEnum):
+                    ct = ctype.tag
+                self.file.write(f"    {name}: {ct}\n")
+
     def print_struct_members(self, struct):
         if struct.opaque:
             return
@@ -246,7 +271,7 @@ class _WrapperPrinter(WrapperPrinter):
         self.file.write("\n")
 
 
-EXCLUDED_HEADERS = set()
+EXCLUDED_HEADERS = {"xlnx-ai-engine.h"}
 
 if platform.system() == "Windows":
     EXCLUDED_HEADERS.add("xaie_interrupt.h")
@@ -272,6 +297,9 @@ def generate(xaie_build_include_dir: Path, output: Path, elf_include_dir: Path):
         # knockout xlnx-ai-engine.h which include <linux>
         cpp_defines.append("_UAPI_AI_ENGINE_H_")
 
+    headers = [
+        "/IdeaProjects/xaiepy/cmake-build-debug/include/xaiengine/xaiegbl_regdef.h"
+    ]
     args = Namespace(
         headers=headers,
         all_headers=False,
@@ -324,3 +352,11 @@ def generate(xaie_build_include_dir: Path, output: Path, elf_include_dir: Path):
     processor.process(descriptions, args)
 
     _WrapperPrinter(str(output.absolute()), args, descriptions)
+
+
+if __name__ == "__main__":
+    generate(
+        Path("/IdeaProjects/xaiepy/cmake-build-debug/include"),
+        Path("/IdeaProjects/xaiepy/xaiepy/__init__.py"),
+        Path("/IdeaProjects/xaiepy/third_party/bootgen"),
+    )
