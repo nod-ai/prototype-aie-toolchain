@@ -324,3 +324,11 @@ def generate(xaie_build_include_dir: Path, output: Path, elf_include_dir: Path):
     processor.process(descriptions, args)
 
     _WrapperPrinter(str(output.absolute()), args, descriptions)
+
+
+if __name__ == "__main__":
+    generate(
+        Path(__file__).parent.parent.absolute() / "cmake-build-debug" / "include",
+        Path(__file__).parent.parent.absolute() / "xaiepy" / "__init__.py",
+        Path(__file__).parent.parent.absolute() / "third_party" / "bootgen",
+    )

@@ -154,7 +154,7 @@ if(NOT WIN32)
   target_link_libraries(xclbinutil-lib PUBLIC crypto)
   target_compile_definitions(xclbinutil-lib
                              PUBLIC ENABLE_JSON_SCHEMA_VALIDATION)
-  target_link_libraries(xclbinutil-lib PUBLIC transformcdo)
+#  target_link_libraries(xclbinutil-lib PUBLIC transformcdo)
 else()
   target_compile_options(xclbinutil-lib PUBLIC "/EHsc")
   # if you get
