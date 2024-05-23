@@ -138,13 +138,13 @@ pdi_fp = Path(__file__).parent.absolute() / "pi.pdi"
 bootgen.make_design_pdi(str(bif_fp), str(pdi_fp))
 mem_top_json_fp = Path(__file__).parent.absolute() / "mem_topology.json"
 with open(mem_top_json_fp, "w") as f:
-    json.dump(xclbinutil.mem_topology, f)
+    json.dump(xclbinutil.mem_topology, f, indent=2)
 aie_part_json_fp = Path(__file__).parent.absolute() / "aie_partition.json"
 with open(aie_part_json_fp, "w") as f:
-    json.dump(xclbinutil.emit_partition(pdi_fp, num_cols=1), f)
+    json.dump(xclbinutil.emit_partition(pdi_fp, num_cols=1), f, indent=2)
 kernels_json_fp = Path(__file__).parent.absolute() / "kernels.json"
 with open(kernels_json_fp, "w") as f:
-    json.dump(xclbinutil.emit_design_kernel_json(), f)
+    json.dump(xclbinutil.emit_design_kernel_json(), f, indent=2)
 
 pi_xclbin_fp = Path(__file__).parent.absolute() / "pi.xclbin"
 xclbinutil.make_xclbin(
