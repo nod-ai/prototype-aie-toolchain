@@ -74,7 +74,7 @@ jobs:
         run: |
 
           pushd examples
-          python cdo.py
+          python gen_example.py
           popd
 
   test-linux-aarch64:
@@ -135,5 +135,5 @@ jobs:
 
           export LD_LIBRARY_PATH=/opt/xilinx/xrt/lib
           pushd examples
-          python cdo.py
+          python gen_example.py
           popd

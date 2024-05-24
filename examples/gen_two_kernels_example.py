@@ -3,6 +3,7 @@ import logging
 import platform
 from pathlib import Path
 
+from xaiepy import bootgen, xclbinutil
 from xaiepy.cdo import (
     startCDOFileStream,
     FileHeader,
@@ -44,8 +45,6 @@ from xaiepy import (
     StrmSwPortType,
     XAie_EnableAieToShimDmaStrmPort,
     XAie_DmaDesc,
-    bootgen,
-    xclbinutil,
 )
 
 if platform.system() != "Windows":
@@ -64,7 +63,8 @@ DDR_AIE_ADDR_OFFSET = 0x80000000
 col = 0
 
 
-def test_cdo_gen():
+def build_cdo(cdo_fp, elf_fp):
+
     tile_0_0 = XAie_LocType(0, col)
     tile_0_1 = XAie_LocType(1, col)
     tile_0_2 = XAie_LocType(2, col)
@@ -93,16 +93,13 @@ def test_cdo_gen():
 
     EnAXIdebug()
     setEndianness(Little_Endian)
-    cdo_fp = Path(__file__).parent.absolute() / "pi_cdo.bin"
     startCDOFileStream(str(cdo_fp))
     FileHeader()
 
     if platform.system() != "Windows":
         XAie_ErrorHandlingInit(devInst)
 
-    XAie_LoadElf(
-        devInst, tile_0_2, str(Path(__file__).parent.absolute() / "pi.elf"), False
-    )
+    XAie_LoadElf(devInst, tile_0_2, str(), False)
 
     XAie_CoreReset(devInst, tile_0_2)
     XAie_CoreUnreset(devInst, tile_0_2)
@@ -138,28 +135,61 @@ def test_cdo_gen():
     configureHeader()
     endCurrentCDOFileStream()
 
-    bif_fp = Path(__file__).parent.absolute() / "pi.bif"
+
+def build_each(whichpi):
+    cdo_fp = Path(__file__).parent.absolute() / f"{whichpi}_cdo.bin"
+    elf_fp = Path(__file__).parent.absolute() / f"{whichpi}.elf"
+    build_cdo(cdo_fp, elf_fp)
+    bif_fp = Path(__file__).parent.absolute() / f"{whichpi}.bif"
     with open(bif_fp, "w") as f:
         f.write(bootgen.emit_design_bif([cdo_fp]))
 
-    pdi_fp = Path(__file__).parent.absolute() / "pi.pdi"
+    pdi_fp = Path(__file__).parent.absolute() / f"{whichpi}.pdi"
     bootgen.make_design_pdi(str(bif_fp), str(pdi_fp))
-    mem_top_json_fp = Path(__file__).parent.absolute() / "mem_topology.json"
-    with open(mem_top_json_fp, "w") as f:
-        json.dump(xclbinutil.mem_topology, f)
-    aie_part_json_fp = Path(__file__).parent.absolute() / "aie_partition.json"
-    pdi_spec = xclbinutil.pdi_spec(pdi_fp)
-    with open(aie_part_json_fp, "w") as f:
-        json.dump(xclbinutil.emit_partition([pdi_spec], num_cols=1), f)
-    kernels_json_fp = Path(__file__).parent.absolute() / "kernels.json"
-    kernel_spec = xclbinutil.kernel_spec()
-    with open(kernels_json_fp, "w") as f:
-        json.dump(xclbinutil.emit_design_kernel_json([kernel_spec]), f)
 
-    pi_xclbin_fp = Path(__file__).parent.absolute() / "pi.xclbin"
-    xclbinutil.make_xclbin(
-        str(mem_top_json_fp),
-        str(aie_part_json_fp),
-        str(kernels_json_fp),
-        str(pi_xclbin_fp),
+
+build_each("pi")
+build_each("twopi")
+pi_pdi_fp = Path(__file__).parent.absolute() / "pi.pdi"
+twopi_pdi_fp = Path(__file__).parent.absolute() / "twopi.pdi"
+
+pi_pdi_spec = xclbinutil.pdi_spec(pi_pdi_fp, kernel_ids=["0x901"])
+twopi_pdi_spec = xclbinutil.pdi_spec(twopi_pdi_fp, kernel_ids=["0x902"])
+
+aie_part_json_fp = Path(__file__).parent.absolute() / f"two_kernels_aie_partition.json"
+with open(aie_part_json_fp, "w") as f:
+    json.dump(
+        xclbinutil.emit_partition([pi_pdi_spec, twopi_pdi_spec], num_cols=1),
+        f,
+        indent=2,
     )
+
+pi_kernel_spec = xclbinutil.kernel_spec(
+    kernel_name="pi", kernel_id="0x901", buffer_args=["c0"]
+)
+twopi_kernel_spec = xclbinutil.kernel_spec(
+    kernel_name="twopi", kernel_id="0x902", buffer_args=["c0"]
+)
+
+kernels_json_fp = Path(__file__).parent.absolute() / "two_kernels.json"
+with open(kernels_json_fp, "w") as f:
+    json.dump(
+        xclbinutil.emit_design_kernel_json([pi_kernel_spec, twopi_kernel_spec]),
+        f,
+        indent=2,
+    )
+
+
+two_kernels_mem_top_json_fp = (
+    Path(__file__).parent.absolute() / "two_kernels_mem_topology.json"
+)
+with open(two_kernels_mem_top_json_fp, "w") as f:
+    json.dump(xclbinutil.mem_topology, f, indent=2)
+
+two_kernels_xclbin_fp = Path(__file__).parent.absolute() / "twokernels_new.xclbin"
+xclbinutil.make_xclbin(
+    str(two_kernels_mem_top_json_fp),
+    str(aie_part_json_fp),
+    str(kernels_json_fp),
+    str(two_kernels_xclbin_fp),
+)
