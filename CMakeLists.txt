@@ -157,10 +157,9 @@ if(NOT WIN32)
   target_link_libraries(xclbinutil-lib PUBLIC transformcdo)
 else()
   target_compile_options(xclbinutil-lib PUBLIC "/EHsc")
-  # if you get
-  # LINK : fatal error LNK1104: cannot open file
+  # if you get LINK : fatal error LNK1104: cannot open file
   # 'libboost_filesystem-vc142-mt-gd-x64-1_74.lib'
-#  target_compile_definitions(xclbinutil-lib PUBLIC BOOST_ALL_DYN_LINK)
+  # target_compile_definitions(xclbinutil-lib PUBLIC BOOST_ALL_DYN_LINK)
 endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -196,7 +195,7 @@ set_target_properties(_bootgen _xclbinutil bootgen-lib cdo_driver xaie
                       xclbinutil-lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 set_target_properties(
-  _bootgen _xclbinutil pyxrt xaie xclbinutil-lib
+  _bootgen _xclbinutil pyxrt xaie xclbinutil-lib xclbinutil
   PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR}
              ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR}
              RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})

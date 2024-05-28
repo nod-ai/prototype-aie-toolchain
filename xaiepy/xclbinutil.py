@@ -1,5 +1,7 @@
+import importlib
 import json
 import os
+import platform
 import random
 import subprocess
 import sys
@@ -135,7 +137,10 @@ def do_run(command):
     subprocess.check_call(command)
 
 
-XCLBIN_PATH = "/opt/xilinx/xrt/bin/xclbinutil"
+_EXE_EXT = ".exe" if platform.system() == "Windows" else ""
+_XCLBIN_PATH = Path(__file__).parent / ("xclbinutil" + _EXE_EXT)
+XCLBIN_PATH = Path(os.getenv("XCLBIN_PATH", _XCLBIN_PATH))
+assert XCLBIN_PATH.exists(), "couldn't find xclbinutil"
 
 
 def get_dpu_kernel_id_from_pdi(pdi):
@@ -156,10 +161,10 @@ def update_pdi_abs_path(pdi, partition_fp):
     return pdi
 
 
-def dump_partition_json(xclbin_fp, output_partition_json_fp):
+def dump_partition_json(xclbin_fp: Path, output_partition_json_fp: Path):
     do_run(
         [
-            XCLBIN_PATH,
+            str(XCLBIN_PATH),
             "--dump-section",
             "AIE_PARTITION:JSON:" + str(output_partition_json_fp),
             "--force",
@@ -226,16 +231,16 @@ def merge_two_xclbins(
 
     do_run(
         [
-            XCLBIN_PATH,
+            str(XCLBIN_PATH),
             "--input",
-            lhs_xclbin_fp,
+            str(lhs_xclbin_fp),
             "--add-kernel",
             str(updated_rhs_kernel_json_fp),
             "--add-replace-section",
             "AIE_PARTITION:JSON:" + "merged_partition.json",
             "--force",
             "--output",
-            output_xclbin_fp,
+            str(output_xclbin_fp),
             "-vtq",
         ],
     )
