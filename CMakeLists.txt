@@ -157,10 +157,9 @@ if(NOT WIN32)
   target_link_libraries(xclbinutil-lib PUBLIC transformcdo)
 else()
   target_compile_options(xclbinutil-lib PUBLIC "/EHsc")
-  # if you get
-  # LINK : fatal error LNK1104: cannot open file
+  # if you get LINK : fatal error LNK1104: cannot open file
   # 'libboost_filesystem-vc142-mt-gd-x64-1_74.lib'
-#  target_compile_definitions(xclbinutil-lib PUBLIC BOOST_ALL_DYN_LINK)
+  # target_compile_definitions(xclbinutil-lib PUBLIC BOOST_ALL_DYN_LINK)
 endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
