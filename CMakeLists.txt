@@ -195,7 +195,7 @@ set_target_properties(_bootgen _xclbinutil bootgen-lib cdo_driver xaie
                       xclbinutil-lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 set_target_properties(
-  _bootgen _xclbinutil pyxrt xaie xclbinutil-lib xclbinutil
+  _bootgen _xclbinutil pyxrt xaie xclbinutil-lib
   PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR}
              ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR}
              RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})

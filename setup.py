@@ -129,12 +129,6 @@ class CMakeBuild(build_ext):
             check=True,
             env=env,
         )
-        subprocess.run(
-            [CMAKE_EXE_PATH, "--build", ".", "--target", "xclbinutil", *build_args],
-            cwd=build_temp,
-            check=True,
-            env=env,
-        )
 
         sys.path.append(str(HERE))
         from util import gen_xaie_ctypes
@@ -146,14 +140,11 @@ class CMakeBuild(build_ext):
         )
 
 
-PACKAGE_NAME = "xaiepy"
-
 build_temp = Path.cwd() / "build" / "temp"
 if not build_temp.exists():
     build_temp.mkdir(parents=True)
 
-
-EXE_EXT = ".exe" if platform.system() == "Windows" else ""
+PACKAGE_NAME = "xaiepy"
 
 setup(
     name=PACKAGE_NAME,
@@ -164,7 +155,6 @@ setup(
     cmdclass={"editable_wheel": editable_wheel, "build_ext": CMakeBuild},
     zip_safe=False,
     packages=[PACKAGE_NAME],
-    package_data={PACKAGE_NAME: ["xclbinutil" + EXE_EXT]},
     include_package_data=True,
     install_requires=[
         str(ir.requirement)

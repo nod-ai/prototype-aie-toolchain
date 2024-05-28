@@ -1,7 +1,11 @@
-#! /usr/bin/env python
 from pathlib import Path
 
-from xaiepy.xclbinutil import merge_two_xclbins
+import pytest
+
+from xaiepy.xclbinutil import merge_two_xclbins, XCLBIN_PATH
+
+if XCLBIN_PATH is None:
+    pytest.skip(allow_module_level=True)
 
 
 def test_merge():

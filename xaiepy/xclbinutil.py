@@ -3,6 +3,7 @@ import json
 import os
 import platform
 import random
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -137,10 +138,16 @@ def do_run(command):
     subprocess.check_call(command)
 
 
-_EXE_EXT = ".exe" if platform.system() == "Windows" else ""
-_XCLBIN_PATH = Path(__file__).parent / ("xclbinutil" + _EXE_EXT)
-XCLBIN_PATH = Path(os.getenv("XCLBIN_PATH", _XCLBIN_PATH))
-assert XCLBIN_PATH.exists(), "couldn't find xclbinutil"
+__XCLBIN_PATH = Path("/opt/xilinx/xrt/bin/xclbinutil")
+_XCLBIN_PATH = shutil.which("xclbinutil")
+if os.getenv("XCLBIN_PATH"):
+    XCLBIN_PATH = Path(os.getenv("XCLBIN_PATH"))
+elif _XCLBIN_PATH is not None:
+    XCLBIN_PATH = Path(_XCLBIN_PATH)
+elif __XCLBIN_PATH.exists():
+    XCLBIN_PATH = __XCLBIN_PATH
+else:
+    XCLBIN_PATH = None
 
 
 def get_dpu_kernel_id_from_pdi(pdi):
@@ -162,6 +169,7 @@ def update_pdi_abs_path(pdi, partition_fp):
 
 
 def dump_partition_json(xclbin_fp: Path, output_partition_json_fp: Path):
+    assert XCLBIN_PATH is not None and XCLBIN_PATH.exists(), "couldn't find xclbinutil"
     do_run(
         [
             str(XCLBIN_PATH),
@@ -229,6 +237,7 @@ def merge_two_xclbins(
     with open("merged_partition.json", "w") as f:
         json.dump(lhs_partition, f, indent=2)
 
+    assert XCLBIN_PATH is not None and XCLBIN_PATH.exists(), "couldn't find xclbinutil"
     do_run(
         [
             str(XCLBIN_PATH),
