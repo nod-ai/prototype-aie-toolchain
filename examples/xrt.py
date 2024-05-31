@@ -51,16 +51,18 @@ shim_instr_v = [
     0x00010100,
 ]
 
+whichpi = "twopi"
+
 instr_v = _PROLOG + shim_instr_v
 instr_v = np.array(instr_v, dtype=np.uint32)
 inout0 = np.zeros((1,), dtype=np.float32)
 
-device, xclbin = init_xrt_load_kernel(Path(__file__).parent.absolute() / "pi.xclbin")
+device, xclbin = init_xrt_load_kernel(Path(__file__).parent.absolute() / f"{whichpi}.xclbin")
 
 
 def go():
     context = pyxrt.hw_context(device, xclbin.get_uuid())
-    xkernel = next(k for k in xclbin.get_kernels() if k.get_name() == "pi")
+    xkernel = next(k for k in xclbin.get_kernels() if k.get_name() == whichpi)
     kernel = pyxrt.kernel(context, xkernel.get_name())
 
     bo_instr = pyxrt.bo(

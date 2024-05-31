@@ -102,12 +102,9 @@ def build_cdo(which_pi):
     if platform.system() != "Windows":
         XAie_ErrorHandlingInit(devInst)
 
-    XAie_LoadElf(
-        devInst,
-        tile_0_2,
-        str(Path(__file__).parent.absolute() / f"{which_pi}.elf"),
-        False,
-    )
+    elf_path = Path(__file__).parent.absolute() / f"{which_pi}.elf"
+    assert elf_path.exists()
+    XAie_LoadElf(devInst, tile_0_2, str(elf_path), False)
 
     XAie_CoreReset(devInst, tile_0_2)
     XAie_CoreUnreset(devInst, tile_0_2)
