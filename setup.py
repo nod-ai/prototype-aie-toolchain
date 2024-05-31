@@ -148,6 +148,7 @@ PACKAGE_NAME = "xaiepy"
 
 setup(
     name=PACKAGE_NAME,
+    version="0.0.1",
     author="Maksim Levental",
     author_email="maksim.levental@gmail.com",
     long_description_content_type="text/markdown",

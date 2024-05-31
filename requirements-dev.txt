@@ -16,3 +16,4 @@ cibuildwheel
 pyPCIe
 cffi
 einspect
+pycapi; sys_platform == 'linux'
