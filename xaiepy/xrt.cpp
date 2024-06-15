@@ -18,6 +18,7 @@
 #include <pybind11/stl.h>
 
 #include <algorithm>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -73,8 +74,7 @@ public:
       buffers.push_back(std::make_unique<xrt::bo>(xrtBuf));
 
       ElementT *buf = xrtBuf.map<ElementT *>();
-      for (int i = 0; i < nElements; ++i)
-        buf[i] = static_cast<ElementT>(0);
+      memset(buf, 0, nElements);
 
       std::vector strides_{1};
       for (int i = shape.size() - 1; i > 0; i--)
