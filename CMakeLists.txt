@@ -188,14 +188,41 @@ set_target_properties(
 add_dependencies(xaie pyxrt)
 
 # ##############################################################################
+# own xrt bindings
+# ##############################################################################
+
+pybind11_add_module(_xrt xaiepy/xrt.cpp)
+target_include_directories(_xrt PRIVATE ${XRT_INCLUDE_DIR}
+                                        ${XRT_BINARY_DIR}/gen
+                                        ${Boost_INCLUDE_DIRS}
+)
+target_link_directories(_xrt PRIVATE ${XRT_LIB_DIR})
+target_link_libraries(_xrt PRIVATE xrt_coreutil uuid)
+set_target_properties(
+  _xrt
+  PROPERTIES
+    # pyxrt and xrt in general do a ridiculous dance with drivers
+    # https://github.com/Xilinx/XRT/blob/edcae12640ce96ec597c4c0cc1b2a850cfcc5c8b/src/runtime_src/core/common/module_loader.cpp#L201-L205
+    SKIP_BUILD_RPATH ON
+    BUILD_WITH_INSTALL_RPATH ON)
+add_dependencies(xaie _xrt)
+
+# ##############################################################################
 # finish
 # ##############################################################################
 
-set_target_properties(_bootgen _xclbinutil bootgen-lib cdo_driver xaie
-                      xclbinutil-lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(
+  _bootgen
+  _xclbinutil
+  _xrt
+  bootgen-lib
+  cdo_driver
+  xaie
+  xclbinutil-lib
+  PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 set_target_properties(
-  _bootgen _xclbinutil pyxrt xaie xclbinutil-lib
+  _bootgen _xclbinutil pyxrt xaie xclbinutil-lib _xrt
   PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR}
              ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR}
              RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})
