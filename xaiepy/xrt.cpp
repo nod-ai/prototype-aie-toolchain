@@ -30,6 +30,9 @@ constexpr size_t TRANSACTION_API_OP_CODE = 3;
 // group_id 2 is for number of npu instructions
 // host side buffers/args follow starting from position 3
 // see aiecc.main.emit_design_kernel_json
+constexpr size_t TRANSACTION_OP_CODE_IDX = 0;
+constexpr size_t INSTRUCTION_BO_IDX = 1;
+constexpr size_t INSTRUCTION_LEN_IDX = 2;
 constexpr size_t HOST_BUFFERS_START_IDX = 3;
 
 class PyXCLBin {
@@ -44,9 +47,9 @@ public:
   }
 
   void loadNPUInstructions(const std::vector<uint32_t> &insts) {
-    npuInstructions =
-        std::make_unique<xrt::bo>(*device, insts.size() * sizeof(uint32_t),
-                                  XCL_BO_FLAGS_CACHEABLE, kernel->group_id(0));
+    npuInstructions = std::make_unique<xrt::bo>(
+        *device, insts.size() * sizeof(uint32_t), XCL_BO_FLAGS_CACHEABLE,
+        kernel->group_id(INSTRUCTION_BO_IDX));
     npuInstructions->write(insts.data());
     npuInstructions->sync(XCL_BO_SYNC_BO_TO_DEVICE);
   }
@@ -104,9 +107,9 @@ public:
 
   void run() {
     run_ = std::make_unique<xrt::run>(*kernel);
-    run_->set_arg(0, TRANSACTION_API_OP_CODE);
-    run_->set_arg(1, *npuInstructions);
-    run_->set_arg(2, npuInstructions->size());
+    run_->set_arg(TRANSACTION_OP_CODE_IDX, TRANSACTION_API_OP_CODE);
+    run_->set_arg(INSTRUCTION_BO_IDX, *npuInstructions);
+    run_->set_arg(INSTRUCTION_LEN_IDX, npuInstructions->size());
     for (size_t i = 0; i < buffers.size(); ++i)
       run_->set_arg(HOST_BUFFERS_START_IDX + i, *buffers[i]);
     run_->start();
