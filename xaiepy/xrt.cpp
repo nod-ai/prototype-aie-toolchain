@@ -24,11 +24,13 @@
 namespace py = pybind11;
 using namespace py::literals;
 
-// group_id 0 is for npu instructions
-// group_id 1 is for number of npu instructions
-// host side buffers/args follow starting from position 2
+constexpr size_t TRANSACTION_API_OP_CODE = 3;
+// group_id 0 is for the op code
+// group_id 1 is for npu instructions
+// group_id 2 is for number of npu instructions
+// host side buffers/args follow starting from position 3
 // see aiecc.main.emit_design_kernel_json
-constexpr size_t HOST_BUFFERS_START_IDX = 2;
+constexpr size_t HOST_BUFFERS_START_IDX = 3;
 
 class PyXCLBin {
 public:
@@ -102,8 +104,9 @@ public:
 
   void run() {
     run_ = std::make_unique<xrt::run>(*kernel);
-    run_->set_arg(0, *npuInstructions);
-    run_->set_arg(1, npuInstructions->size());
+    run_->set_arg(0, TRANSACTION_API_OP_CODE);
+    run_->set_arg(1, *npuInstructions);
+    run_->set_arg(2, npuInstructions->size());
     for (size_t i = 0; i < buffers.size(); ++i)
       run_->set_arg(HOST_BUFFERS_START_IDX + i, *buffers[i]);
     run_->start();
